@@ -31,17 +31,15 @@ class WebServer {
         });
         this.port = process.env.DASHBOARD_PORT || 3000;
 
-        this.brain = null;
-        this.memory = null;
+        this.contexts = new Map();
 
         this.init();
         this.logBuffer = []; // Store last 200 logs
     }
 
-    setContext(brain, memory) {
-        this.brain = brain;
-        this.memory = memory;
-        console.log("🔗 [WebServer] Context linked: Brain & Memory");
+    setContext(golemId, brain, memory) {
+        this.contexts.set(golemId, { brain, memory });
+        console.log(`🔗 [WebServer] Context linked: Brain & Memory for Golem [${golemId}]`);
     }
 
     init() {
@@ -75,28 +73,94 @@ class WebServer {
 
 
         // --- API Routes ---
+        this.app.get('/api/golems', (req, res) => {
+            return res.json({ golems: Array.from(this.contexts.keys()) });
+        });
+
         this.app.get('/api/memory', async (req, res) => {
-            if (!this.memory) return res.status(503).json({ error: "Memory not engaged" });
+            const golemId = req.query.golemId || (this.contexts.size > 0 ? Array.from(this.contexts.keys())[0] : null);
+            const context = golemId ? this.contexts.get(golemId) : null;
+            if (!context || !context.memory) return res.status(503).json({ error: "Memory not engaged" });
+
             try {
                 // If using Qmd/Native, we might need a way to list all. 
                 // For now, let's assume valid search or exposed method.
                 // If ExperienceMemory (JSON based):
-                if (this.memory.data) return res.json(this.memory.data);
+                if (context.memory.data) return res.json(context.memory.data);
 
                 // If SystemNativeDriver or Qmd, we need a implementation to "list all" or search empty
-                const results = await this.memory.recall("");
+                const results = await context.memory.recall("");
                 return res.json(results);
             } catch (e) {
                 return res.status(500).json({ error: e.message });
             }
         });
 
+        this.app.delete('/api/memory', async (req, res) => {
+            const golemId = req.query.golemId || (this.contexts.size > 0 ? Array.from(this.contexts.keys())[0] : null);
+            const context = golemId ? this.contexts.get(golemId) : null;
+            if (!context || !context.memory) return res.status(503).json({ error: "Memory not engaged" });
+            try {
+                if (typeof context.memory.clearMemory === 'function') {
+                    await context.memory.clearMemory();
+                    return res.json({ success: true, message: "Memory cleared" });
+                } else {
+                    return res.status(501).json({ error: "Clear memory not supported by this driver" });
+                }
+            } catch (e) {
+                return res.status(500).json({ error: e.message });
+            }
+        });
+
+        this.app.get('/api/memory/export', async (req, res) => {
+            const golemId = req.query.golemId || (this.contexts.size > 0 ? Array.from(this.contexts.keys())[0] : null);
+            const context = golemId ? this.contexts.get(golemId) : null;
+            if (!context || !context.memory) return res.status(503).json({ error: "Memory not engaged" });
+            try {
+                if (typeof context.memory.exportMemory === 'function') {
+                    const data = await context.memory.exportMemory();
+                    res.setHeader('Content-disposition', `attachment; filename=memory_${golemId || 'export'}_${Date.now()}.json`);
+                    res.setHeader('Content-type', 'application/json');
+                    return res.send(data);
+                } else {
+                    return res.status(501).json({ error: "Export memory not supported by this driver" });
+                }
+            } catch (e) {
+                return res.status(500).json({ error: e.message });
+            }
+        });
+
+        this.app.post('/api/memory/import', async (req, res) => {
+            const golemId = req.query.golemId || (this.contexts.size > 0 ? Array.from(this.contexts.keys())[0] : null);
+            const context = golemId ? this.contexts.get(golemId) : null;
+            if (!context || !context.memory) return res.status(503).json({ error: "Memory not engaged" });
+
+            try {
+                if (typeof context.memory.importMemory === 'function') {
+                    const jsonData = req.body;
+                    // body is parsed as object if we use express.json(), need it as string for evaluate
+                    const result = await context.memory.importMemory(JSON.stringify(jsonData));
+                    if (result.success) {
+                        return res.json(result);
+                    } else {
+                        return res.status(400).json(result);
+                    }
+                } else {
+                    return res.status(501).json({ error: "Import memory not supported by this driver" });
+                }
+            } catch (e) {
+                return res.status(500).json({ error: e.message });
+            }
+        });
+
         this.app.post('/api/memory', async (req, res) => {
-            if (!this.memory) return res.status(503).json({ error: "Memory not engaged" });
+            const golemId = req.query.golemId || (this.contexts.size > 0 ? Array.from(this.contexts.keys())[0] : null);
+            const context = golemId ? this.contexts.get(golemId) : null;
+            if (!context || !context.memory) return res.status(503).json({ error: "Memory not engaged" });
             try {
                 const { text, metadata } = req.body;
-                await this.memory.memorize(text, metadata || {});
-                this.io.emit('memory_update', { action: 'add', text, metadata });
+                await context.memory.memorize(text, metadata || {});
+                this.io.emit('memory_update', { action: 'add', text, metadata, golemId });
                 return res.json({ success: true });
             } catch (e) {
                 return res.status(500).json({ error: e.message });
@@ -104,10 +168,12 @@ class WebServer {
         });
 
         this.app.get('/api/agent/logs', (req, res) => {
-            if (!this.brain || !this.brain.chatLogFile) return res.json([]);
+            const golemId = req.query.golemId || (this.contexts.size > 0 ? Array.from(this.contexts.keys())[0] : null);
+            const context = golemId ? this.contexts.get(golemId) : null;
+            if (!context || !context.brain || !context.brain.chatLogFile) return res.json([]);
             try {
-                if (!fs.existsSync(this.brain.chatLogFile)) return res.json([]);
-                const content = fs.readFileSync(this.brain.chatLogFile, 'utf8');
+                if (!fs.existsSync(context.brain.chatLogFile)) return res.json([]);
+                const content = fs.readFileSync(context.brain.chatLogFile, 'utf8');
                 const logs = content.trim().split('\n').map(line => {
                     try { return JSON.parse(line); } catch (e) { return null; }
                 }).filter(x => x);
@@ -143,14 +209,16 @@ class WebServer {
                     queueCount: this.dashboard.queueCount,
                     lastSchedule: this.dashboard.lastSchedule,
                     uptime: process.uptime(),
-                    logs: this.logBuffer // Send buffered logs
+                    logs: this.logBuffer, // Send buffered logs
+                    golems: Array.from(this.contexts.keys()) // Send active golems
                 });
             } else {
                 socket.emit('init', {
                     queueCount: 0,
                     lastSchedule: 'N/A',
                     uptime: process.uptime(),
-                    logs: this.logBuffer
+                    logs: this.logBuffer,
+                    golems: Array.from(this.contexts.keys())
                 });
             }
 

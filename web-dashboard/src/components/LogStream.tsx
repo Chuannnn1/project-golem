@@ -7,7 +7,7 @@ import { socket } from "@/lib/socket";
 interface LogMessage {
     time: string;
     msg: string;
-    type: 'general' | 'chronos' | 'queue' | 'agent' | 'error';
+    type: 'general' | 'chronos' | 'queue' | 'agent' | 'error' | 'memory';
     raw?: string;
 }
 
@@ -47,6 +47,7 @@ export function LogStream({ className, types, autoScroll = true }: { className?:
             case 'agent': return 'text-cyan-400';
             case 'chronos': return 'text-yellow-400';
             case 'queue': return 'text-purple-400';
+            case 'memory': return 'text-[#dfe6e9]';
             default: return 'text-gray-300';
         }
     };
@@ -55,8 +56,8 @@ export function LogStream({ className, types, autoScroll = true }: { className?:
         <div className={cn("bg-black border border-gray-800 rounded-md p-4 font-mono text-xs h-full flex flex-col", className)}>
             <div className="flex-1 overflow-y-auto space-y-1" ref={scrollRef}>
                 {logs.filter(log => !types || types.includes(log.type)).map((log, i) => (
-                    <div key={i} className="flex">
-                        <span className="text-gray-500 mr-2">[{log.time}]</span>
+                    <div key={i} className="flex border-b border-dashed border-gray-800 pb-1 mb-1 last:border-0">
+                        <span className="text-[#feca57] mr-2">[{log.time}]</span>
                         <span className={cn(getLogColor(log.type), "break-words")}>
                             {log.msg}
                         </span>

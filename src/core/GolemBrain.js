@@ -290,11 +290,11 @@ class GolemBrain {
         if (!process.argv.includes('dashboard')) return;
         try {
             const dashboard = require('../../dashboard');
-            dashboard.setContext(this, this.memoryDriver);
+            dashboard.setContext(this.golemId, this, this.memoryDriver);
         } catch (e) {
             try {
                 const dashboard = require('../../dashboard.js');
-                dashboard.setContext(this, this.memoryDriver);
+                dashboard.setContext(this.golemId, this, this.memoryDriver);
             } catch (err) {
                 console.error("Failed to link dashboard context:", err);
             }

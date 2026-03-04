@@ -44,6 +44,11 @@ class BrowserMemoryDriver {
             const memoryPath = 'file:///' + targetHtmlPath.replace(/\\/g, '/');
             console.log(`🧠 [Memory:Browser] 正在掛載神經海馬迴: ${memoryPath} (Golem: ${this.brain.golemId})`);
 
+            // Forward console logs from Puppeteer to the Node backend
+            this.brain.memoryPage.on('console', msg => {
+                console.log(`🧠 [Memory:Browser] ${msg.text()}`);
+            });
+
             await this.brain.memoryPage.goto(memoryPath);
             await new Promise(r => setTimeout(r, 5000));
         } catch (e) { console.error("❌ [Memory:Browser] 啟動失敗:", e.message); }
@@ -51,6 +56,9 @@ class BrowserMemoryDriver {
     async recall(query) {
         if (!this.brain.memoryPage) return [];
         return await this.brain.memoryPage.evaluate(async (txt) => {
+            if (!txt || txt.trim() === "") {
+                return window.getAllMemories ? await window.getAllMemories() : [];
+            }
             return window.queryMemory ? await window.queryMemory(txt) : [];
         }, query);
     }
@@ -84,6 +92,20 @@ class BrowserMemoryDriver {
         } catch (e) {
             console.error("❌ [Memory:Browser] 清空 DB 失敗:", e.message);
         }
+    }
+
+    async exportMemory() {
+        if (!this.brain.memoryPage) return "[]";
+        return await this.brain.memoryPage.evaluate(async () => {
+            return window.exportMemories ? await window.exportMemories() : "[]";
+        });
+    }
+
+    async importMemory(jsonData) {
+        if (!this.brain.memoryPage) return { success: false, error: "Memory engine not ready" };
+        return await this.brain.memoryPage.evaluate(async (data) => {
+            return window.importMemories ? await window.importMemories(data) : { success: false, error: "Not supported" };
+        }, jsonData);
     }
 }
 

@@ -1,43 +1,50 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golem Neural Cortex v9.0.3</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --bg-color: #fcf8e3; /* 米黃色背景 */
+            --bg-color: #fcf8e3;
+            /* 米黃色背景 */
             --box-bg: #ffffff;
             --text-color: #4a4a4a;
-            --accent-pink: #ff6b81; /* 重點色：粉紅 */
-            --accent-blue: #48dbfb; /* 重點色：粉藍 */
+            --accent-pink: #ff6b81;
+            /* 重點色：粉紅 */
+            --accent-blue: #48dbfb;
+            /* 重點色：粉藍 */
             --border-color: #2d3436;
-            --shadow-color: rgba(0,0,0,0.15);
+            --shadow-color: rgba(0, 0, 0, 0.15);
         }
 
-        body { 
-            font-family: 'DotGothic16', "Microsoft JhengHei", sans-serif; /* 英文像素，中文黑體 */
+        body {
+            font-family: 'DotGothic16', "Microsoft JhengHei", sans-serif;
+            /* 英文像素，中文黑體 */
             background-color: var(--bg-color);
-            background-image: radial-gradient(#dcdde1 2px, transparent 2px); /* 點點背景 */
+            background-image: radial-gradient(#dcdde1 2px, transparent 2px);
+            /* 點點背景 */
             background-size: 20px 20px;
-            color: var(--text-color); 
-            padding: 30px; 
+            color: var(--text-color);
+            padding: 30px;
             max-width: 900px;
             margin: 0 auto;
         }
 
-        h1 { 
+        h1 {
             font-family: 'Press Start 2P', cursive;
-            color: var(--text-color); 
-            font-size: 1.4rem; 
-            margin-bottom: 2rem; 
+            color: var(--text-color);
+            font-size: 1.4rem;
+            margin-bottom: 2rem;
             line-height: 1.8;
             text-shadow: 2px 2px 0px #fff;
             border-bottom: 4px solid var(--border-color);
             padding-bottom: 10px;
         }
-        
+
         h1 span.cn-note {
             font-size: 0.6em;
             color: var(--accent-pink);
@@ -56,7 +63,7 @@
             position: relative;
             box-shadow: 6px 6px 0px var(--shadow-color);
         }
-        
+
         /* 標籤 Badge */
         .nes-badge {
             position: absolute;
@@ -78,10 +85,10 @@
             margin-bottom: 20px;
         }
 
-        .status { 
+        .status {
             font-family: 'DotGothic16', sans-serif;
             font-size: 0.9rem;
-            padding: 15px; 
+            padding: 15px;
             border: 4px solid var(--border-color);
             background: #fff;
             display: flex;
@@ -91,11 +98,12 @@
         }
 
         .status-ok {
-            background: #dff9fb; /* 淺藍背景 */
+            background: #dff9fb;
+            /* 淺藍背景 */
             color: #22a6b3;
             border-color: #22a6b3;
         }
-        
+
         .status-error {
             background: #ff7979;
             color: white;
@@ -103,12 +111,29 @@
 
         /* 💓 心跳動畫 */
         @keyframes heartbeat {
-            0% { transform: scale(1); }
-            15% { transform: scale(1.05); }
-            30% { transform: scale(1); }
-            45% { transform: scale(1.05); }
-            60% { transform: scale(1); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            15% {
+                transform: scale(1.05);
+            }
+
+            30% {
+                transform: scale(1);
+            }
+
+            45% {
+                transform: scale(1.05);
+            }
+
+            60% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .heartbeat {
@@ -116,9 +141,9 @@
         }
 
         /* 日誌區塊 */
-        .log { 
+        .log {
             font-family: 'DotGothic16', monospace;
-            background: #2d3436; 
+            background: #2d3436;
             color: #dfe6e9;
             padding: 15px;
             border: 4px solid var(--border-color);
@@ -126,23 +151,42 @@
             overflow-y: auto;
             line-height: 1.6;
         }
-        
-        /* 捲軸美化 */
-        ::-webkit-scrollbar { width: 12px; }
-        ::-webkit-scrollbar-track { background: #eee; border-left: 2px solid #000; }
-        ::-webkit-scrollbar-thumb { background: var(--accent-pink); border: 2px solid #000; }
 
-        .badge-ver { background: var(--accent-blue); color: #000; padding: 2px 6px; font-size: 0.6em; border: 2px solid #000; vertical-align: middle; }
+        /* 捲軸美化 */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #eee;
+            border-left: 2px solid #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-pink);
+            border: 2px solid #000;
+        }
+
+        .badge-ver {
+            background: var(--accent-blue);
+            color: #000;
+            padding: 2px 6px;
+            font-size: 0.6em;
+            border: 2px solid #000;
+            vertical-align: middle;
+        }
     </style>
 </head>
+
 <body>
     <h1>
-        🧠 Golem Neural Cortex 
+        🧠 Golem Neural Cortex
         <span class="badge-ver">v9.0.3</span>
         <br><span class="cn-note">Golem智能體記憶核心</span>
     </h1>
 
-    <button onclick="clearAllMemory()" style="background: var(--accent-pink); color: white; padding: 10px 15px; border: 2px solid #000; border-radius: 5px; cursor: pointer; font-family: inherit; font-weight: bold; margin-bottom: 20px; box-shadow: 3px 3px 0px var(--shadow-color);">
+    <button onclick="clearAllMemory()"
+        style="background: var(--accent-pink); color: white; padding: 10px 15px; border: 2px solid #000; border-radius: 5px; cursor: pointer; font-family: inherit; font-weight: bold; margin-bottom: 20px; box-shadow: 3px 3px 0px var(--shadow-color);">
         🗑️ 物理清空記憶庫 (Wipe DB)
     </button>
 
@@ -178,7 +222,7 @@
         let extractor = null;
         let db = null;
         const DB_NAME = 'GolemMemoryDB';
-        const DB_VERSION = 2; 
+        const DB_VERSION = 2;
         const STORE_NAME = 'memories';
         const SCHEDULE_STORE = 'schedule';
         const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
@@ -196,17 +240,17 @@
             try {
                 log(`Loading Model: ${MODEL_NAME}...`);
                 extractor = await pipeline('feature-extraction', MODEL_NAME);
-                
+
                 const el = document.getElementById('model-status');
                 el.innerHTML = "✅ Model Active (all-MiniLM-L6-v2)<br><small>模型已載入</small>";
-                el.className = "status status-ok heartbeat"; 
-                
+                el.className = "status status-ok heartbeat";
+
                 log("Neural Engine Ready.");
             } catch (e) {
                 const el = document.getElementById('model-status');
                 el.innerText = "❌ Model Failed: " + e.message;
                 el.className = "status status-error";
-         
+
                 log("Model Error: " + e.message);
             }
         }
@@ -281,8 +325,8 @@
                         }));
                         scored.sort((a, b) => b.score - a.score);
                         const results = scored.filter(m => m.score > 0.25).slice(0, topK);
-                        if (results.length > 0) log(`Recall hit: "${results[0].text.substring(0, 20)}..." (${(results[0].score*100).toFixed(0)}%)`);
-                        else log(`Recall miss for: "${text.substring(0,15)}..."`);
+                        if (results.length > 0) log(`Recall hit: "${results[0].text.substring(0, 20)}..." (${(results[0].score * 100).toFixed(0)}%)`);
+                        else log(`Recall miss for: "${text.substring(0, 15)}..."`);
                         resolve(results);
                     };
                 });
@@ -303,6 +347,68 @@
             });
         };
 
+        window.getAllMemories = async () => {
+            if (!db) return [];
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    const allMemories = request.result || [];
+                    // Sort descending by timestamp
+                    allMemories.sort((a, b) => b.timestamp - a.timestamp);
+                    // Map out the huge embeddings to save bandwidth if possible, or just return them
+                    const results = allMemories.map(mem => ({
+                        text: mem.text,
+                        metadata: mem.metadata,
+                        timestamp: mem.timestamp
+                    }));
+                    resolve(results);
+                };
+                request.onerror = () => resolve([]);
+            });
+        };
+
+        window.exportMemories = async () => {
+            if (!db) return JSON.stringify([]);
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    resolve(JSON.stringify(request.result || []));
+                };
+                request.onerror = () => resolve(JSON.stringify([]));
+            });
+        };
+
+        window.importMemories = async (jsonData) => {
+            if (!db) return { success: false, error: "DB not ready" };
+            try {
+                const data = JSON.parse(jsonData);
+                if (!Array.isArray(data)) throw new Error("Invalid format: Expected array");
+                return new Promise((resolve) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    let count = 0;
+                    data.forEach(item => {
+                        if (item.text && item.embedding) {
+                            delete item.id; // Let autoIncrement re-assign the keys
+                            store.add(item);
+                            count++;
+                        }
+                    });
+                    tx.oncomplete = () => {
+                        log(`📥 Imported ${count} memory records.`);
+                        resolve({ success: true, count });
+                    };
+                    tx.onerror = () => resolve({ success: false, error: tx.error });
+                });
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        };
+
         window.checkSchedule = async () => {
             if (!db) return [];
             const nowISO = new Date().toISOString();
@@ -319,7 +425,7 @@
                         const record = cursor.value;
                         if (record.status === 'pending') {
                             dueTasks.push(record);
-                            cursor.delete(); 
+                            cursor.delete();
                         }
                         cursor.continue();
                     } else {
@@ -337,7 +443,7 @@
                 alert("資料庫尚未載入完成，請稍候。");
                 return;
             }
-            
+
             // 如果是從網頁上手動點擊，會跳出確認視窗。如果是程式自動呼叫，就不會卡住。
             if (event && event.type === 'click') {
                 if (!confirm("⚠️ 警告：確定要物理清空/壓縮所有記憶庫嗎？這個動作將會刪除過去『所有的對話歷史』，且無法還原！")) {
@@ -350,22 +456,22 @@
                     // 抓出資料庫裡所有的表單 (Store) 並全部清空
                     const storeNames = Array.from(db.objectStoreNames);
                     const tx = db.transaction(storeNames, 'readwrite');
-                    
+
                     storeNames.forEach(storeName => {
                         tx.objectStore(storeName).clear();
                     });
-                    
+
                     tx.oncomplete = () => {
                         log(`🗑️ 記憶庫已被徹底清空！`);
-                        
+
                         // 如果是手動點擊，彈出提示並重整畫面
                         if (event && event.type === 'click') {
                             alert("✅ IndexedDB 記憶庫已成功清空！");
-                            location.reload(); 
+                            location.reload();
                         }
                         resolve(true);
                     };
-                    
+
                     tx.onerror = () => {
                         console.error("清空 DB 失敗:", tx.error);
                         reject(tx.error);
@@ -383,4 +489,5 @@
         })();
     </script>
 </body>
+
 </html>

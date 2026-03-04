@@ -47,6 +47,8 @@ class DashboardManager {
             type = 'queue';
             if (cleanMsg.includes('加入隊列')) this.state.queueCount++;
             if (cleanMsg.includes('開始處理')) this.state.queueCount = Math.max(0, this.state.queueCount - 1);
+        } else if (cleanMsg.includes('[Memory]') || cleanMsg.includes('[Memory:Browser]')) {
+            type = 'memory';
         }
 
         return { type, msg, cleanMsg, raw: msg };
