@@ -37,8 +37,24 @@ const BROWSER_ARGS = Object.freeze([
 /** Chrome Lock 檔案名稱 */
 const LOCK_FILES = Object.freeze(['SingletonLock', 'SingletonSocket', 'SingletonCookie']);
 
-/** 日誌保留時間 (毫秒) - 預設 1 天 */
-const LOG_RETENTION_MS = 24 * 60 * 60 * 1000;
+/** 🏛️ 金字塔式分層記憶保留策略 */
+const MEMORY_TIERS = Object.freeze({
+    // Tier 0: 每小時原始日誌
+    HOURLY_RETENTION_MS: 3 * 24 * 60 * 60 * 1000,    // 72 小時
+    // Tier 1: 每日摘要
+    DAILY_RETENTION_MS: 90 * 24 * 60 * 60 * 1000,     // 90 天
+    DAILY_SUMMARY_CHARS: 1500,
+    // Tier 2: 每月精華
+    MONTHLY_RETENTION_MS: 5 * 365 * 24 * 60 * 60 * 1000, // 5 年
+    MONTHLY_SUMMARY_CHARS: 3000,
+    // Tier 3: 年度回顧 (永久)
+    YEARLY_SUMMARY_CHARS: 5000,
+    // Tier 4: 紀元里程碑 (永久)
+    ERA_SUMMARY_CHARS: 8000,
+});
+
+/** 日誌保留時間 (毫秒) - 向下相容 */
+const LOG_RETENTION_MS = MEMORY_TIERS.HOURLY_RETENTION_MS;
 
 module.exports = {
     TIMINGS,
@@ -47,4 +63,5 @@ module.exports = {
     BROWSER_ARGS,
     LOCK_FILES,
     LOG_RETENTION_MS,
+    MEMORY_TIERS,
 };

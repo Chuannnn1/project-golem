@@ -206,16 +206,64 @@ console.log(`🛡️ [Flood Guard] 系統啟動時間: ${new Date(BOOT_TIME).toL
     initialGolems.forEach(instance => {
         instance.autonomy.start();
         console.log(`✅ [System][${instance.brain.golemId}] Autonomy Engine is Online.`);
-        // ✨ [新增] 每日日誌自動壓縮 (昨天的每小時日誌 -> 每日摘要)
-        if (instance.brain.chatLogManager) {
-            const yesterday = instance.brain.chatLogManager._getYesterdayDateString();
-            console.log(`🕒 [System][${instance.brain.golemId}] 檢查 ${yesterday} 的日誌壓縮狀態...`);
-            // 為了不阻塞啟動，使用非同步執行
-            instance.brain.chatLogManager.compressLogsForDate(yesterday, instance.brain).catch(err => {
-                console.error(`❌ [System][${instance.brain.golemId}] 自動壓縮失敗: ${err.message}`);
-            });
-        }
     });
+
+    // ============================================================
+    // 🏛️ 金字塔式多層記憶壓縮排程器
+    // ============================================================
+
+    /**
+     * 多層壓縮巡檢：根據當前日期決定需要觸發哪些層級的壓縮
+     */
+    async function runTieredCompression() {
+        const now = new Date();
+        const day = now.getDate();
+        const month = now.getMonth() + 1; // 1-12
+        const year = now.getFullYear();
+
+        console.log(`🕒 [Scheduler] 啟動多層記憶壓縮巡檢...`);
+
+        for (const [id, instance] of activeGolems.entries()) {
+            const mgr = instance.brain.chatLogManager;
+            if (!mgr) continue;
+
+            // Tier 0 → 1: Hourly → Daily (每次巡檢都執行)
+            const yesterday = mgr._getYesterdayDateString();
+            mgr.compressLogsForDate(yesterday, instance.brain).catch(err => {
+                console.error(`❌ [Scheduler][${id}] Daily 壓縮失敗: ${err.message}`);
+            });
+
+            // Tier 1 → 2: Daily → Monthly (每月 1 號觸發上個月的壓縮)
+            if (day === 1) {
+                const lastMonth = mgr._getLastMonthString();
+                mgr.compressMonthly(lastMonth, instance.brain).catch(err => {
+                    console.error(`❌ [Scheduler][${id}] Monthly 壓縮失敗: ${err.message}`);
+                });
+            }
+
+            // Tier 2 → 3: Monthly → Yearly (每年 1/1 觸發上一年的壓縮)
+            if (month === 1 && day === 1) {
+                const lastYear = mgr._getLastYearString();
+                mgr.compressYearly(lastYear, instance.brain).catch(err => {
+                    console.error(`❌ [Scheduler][${id}] Yearly 壓縮失敗: ${err.message}`);
+                });
+            }
+
+            // Tier 3 → 4: Yearly → Era (每逢十年邊界的 1/1 觸發)
+            if (month === 1 && day === 1 && year % 10 === 0) {
+                const lastDecade = mgr._getLastDecadeString();
+                mgr.compressEra(lastDecade, instance.brain).catch(err => {
+                    console.error(`❌ [Scheduler][${id}] Era 壓縮失敗: ${err.message}`);
+                });
+            }
+        }
+    }
+
+    // 每 6 小時巡檢一次
+    setInterval(runTieredCompression, 6 * 60 * 60 * 1000);
+
+    // 啟動時立即執行一次
+    runTieredCompression();
 
     console.log(`✅ Multi-Golem v9.0.6 is Online. (Instances: ${GOLEMS_CONFIG.length > 0 ? GOLEMS_CONFIG.map(g => g.id).join(', ') : 'golem_A'})`);
     if (dcClient) dcClient.login(CONFIG.DC_TOKEN);

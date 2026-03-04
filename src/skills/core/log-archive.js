@@ -30,16 +30,6 @@ async function run(ctx) {
 
         console.log(`🗄️ [LogArchiver] 正在為 ${targetDate} 執行手動存檔程序...`);
 
-        // 注意：compressLogsForDate 需要 brain 實例來發送 sendMessage
-        // 這裡的 ctx.page/browser 可以幫助我們定位
-        // 為了解耦，我們可以從 ctx 中構建一個 mock 或者直接要求傳入 brain
-
-        // 由於我們是在專案內部，我們直接透過 require 獲取單例的 brain (如果有的話)
-        // 或者我們可以讓 SkillHandler 傳入整個 brain
-        // 讓我們假設 brain 在 SkillHandler 中被傳入
-
-        const actualBrain = ctx.brain || brain;
-
         await logManager.compressLogsForDate(targetDate, actualBrain, true);
 
         return `✅ ${targetDate} 的日誌歸檔程序已執行完畢。原始檔案已清理，摘要已寫入存檔。`;

@@ -335,39 +335,54 @@ class GolemBrain {
         await this.sendMessage(compressedPrompt, false); // ⚡ 改為 false：等待完整回應
         console.log(`📡 [Brain] 階段一：底層協議注入完成。`);
 
-        // 🧠 [第二階段] 注入完整歷史日誌摘要 (獨立訊息以優化記憶壓縮)
+        // 🧠 [第二階段] 金字塔式多層記憶注入
         if (this.chatLogManager) {
-            const fs = require('fs');
-            const logDir = this.chatLogManager.logDir;
-
             try {
-                // 掃描符合 YYYYMMDD.log 格式的檔案 (每日摘要)
-                const files = fs.readdirSync(logDir)
-                    .filter(f => f.length === 12 && f.endsWith('.log'))
-                    .sort();
+                let historicalMemory = "";
 
-                if (files.length > 0) {
-                    let historicalMemory = "";
-                    files.forEach(file => {
-                        try {
-                            const dateStr = file.replace('.log', '');
-                            const logs = JSON.parse(fs.readFileSync(path.join(logDir, file), 'utf8'));
-                            if (Array.isArray(logs)) {
-                                logs.forEach((entry, idx) => {
-                                    // 🛡️ [防呆] 只注入有內容的摘要，避免空字串污染 Prompt
-                                    if (entry.content && entry.content.trim()) {
-                                        historicalMemory += `\n--- [${dateStr} 摘要 #${idx + 1}] ---\n${entry.content}\n`;
-                                    }
-                                });
-                            }
-                        } catch (e) { }
+                // 🏛️ Tier 4: 紀元里程碑 (最近 1 個)
+                const eraSummaries = this.chatLogManager.readTier('era', 1);
+                if (eraSummaries.length > 0) {
+                    eraSummaries.forEach(s => {
+                        historicalMemory += `\n=== [紀元回憶: ${s.date}] ===\n${s.content}\n`;
                     });
+                }
 
-                    if (historicalMemory) {
-                        const memoryPulse = `【指令：載入長期記憶與背景壓縮】\n以下是你過去所有對話的彙總精華（依時間排序）。請完整閱讀並內化這些背景，將其視為你目前已知的所有先驗知識與決策紀錄：\n${historicalMemory}`;
-                        await this.sendMessage(memoryPulse, false); // ⚡ 改為 false：確保記憶載入完成
-                        console.log(`🧠 [Brain] 階段二：已注入 ${files.length} 個歷史日誌檔案作為獨立回憶。`);
-                    }
+                // 🏛️ Tier 3: 年度回顧 (最近 1 個)
+                const yearlySummaries = this.chatLogManager.readTier('yearly', 1);
+                if (yearlySummaries.length > 0) {
+                    yearlySummaries.forEach(s => {
+                        historicalMemory += `\n=== [年度回顧: ${s.date}] ===\n${s.content}\n`;
+                    });
+                }
+
+                // 🏛️ Tier 2: 月度精華 (最近 3 個)
+                const monthlySummaries = this.chatLogManager.readTier('monthly', 3);
+                if (monthlySummaries.length > 0) {
+                    monthlySummaries.forEach(s => {
+                        historicalMemory += `\n--- [月度精華: ${s.date}] ---\n${s.content}\n`;
+                    });
+                }
+
+                // 🏛️ Tier 1: 每日摘要 (最近 7 天)
+                const dailySummaries = this.chatLogManager.readTier('daily', 7);
+                if (dailySummaries.length > 0) {
+                    dailySummaries.forEach(s => {
+                        historicalMemory += `\n--- [${s.date} 摘要] ---\n${s.content}\n`;
+                    });
+                }
+
+                if (historicalMemory) {
+                    const tierCounts = [
+                        eraSummaries.length > 0 ? `紀元×${eraSummaries.length}` : null,
+                        yearlySummaries.length > 0 ? `年度×${yearlySummaries.length}` : null,
+                        monthlySummaries.length > 0 ? `月度×${monthlySummaries.length}` : null,
+                        dailySummaries.length > 0 ? `每日×${dailySummaries.length}` : null,
+                    ].filter(Boolean).join(', ');
+
+                    const memoryPulse = `【指令：載入長期記憶與背景壓縮】\n以下是你過去對話的多層次彙總精華（由遠至近排序：紀元 → 年度 → 月度 → 每日）。請完整閱讀並內化這些背景，將其視為你目前已知的所有先驗知識與決策紀錄：\n${historicalMemory}`;
+                    await this.sendMessage(memoryPulse, false);
+                    console.log(`🧠 [Brain] 階段二：已注入多層記憶 (${tierCounts})。`);
                 }
             } catch (e) {
                 console.warn(`⚠️ [Brain] 歷史記憶掃描或注入失敗: ${e.message}`);
