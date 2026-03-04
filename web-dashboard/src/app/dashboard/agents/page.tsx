@@ -22,7 +22,7 @@ export default function AgentsPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <Card>
+                    <Card className="bg-gray-900 border-gray-800 text-white shadow-md">
                         <CardHeader>
                             <CardTitle className="text-sm">Active Agents</CardTitle>
                         </CardHeader>
@@ -42,7 +42,7 @@ export default function AgentsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-gray-900 border-gray-800 text-white shadow-md">
                         <CardHeader>
                             <CardTitle className="text-sm">Session Stats</CardTitle>
                         </CardHeader>

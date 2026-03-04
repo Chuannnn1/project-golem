@@ -43,6 +43,7 @@ module.exports = {
 
     getSystemPrompt: (systemInfo) => {
         let fullPrompt = CORE_DEFINITION(systemInfo) + "\n";
+        const userDataDir = systemInfo && typeof systemInfo === 'object' ? systemInfo.userDataDir : null;
 
         for (const [name, module] of Object.entries(SKILLS)) {
             const prompt = typeof module === 'string' ? module : (module.PROMPT || "");
@@ -61,7 +62,7 @@ module.exports = {
             }
         }
 
-        fullPrompt += `\n[系統就緒] 請等待 ${persona.get().userName} 的指令。`;
+        fullPrompt += `\n[系統就緒] 請等待 ${persona.get(userDataDir).userName} 的指令。`;
         return fullPrompt;
     }
 };

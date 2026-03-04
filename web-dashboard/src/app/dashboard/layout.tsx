@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Users, Database, Globe, ChevronLeft, ChevronRight, Terminal, BrainCircuit, BookOpen } from "lucide-react";
 import { GolemProvider, useGolem } from "@/components/GolemContext";
@@ -58,8 +58,8 @@ function DashboardSidebar({
                         onChange={(e) => setActiveGolem(e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500"
                     >
-                        {golems.map(id => (
-                            <option key={id} value={id}>{id}</option>
+                        {golems.map(golem => (
+                            <option key={golem.id} value={golem.id}>{golem.id}</option>
                         ))}
                     </select>
                 </div>
@@ -103,6 +103,8 @@ function DashboardSidebar({
     );
 }
 
+
+
 export default function DashboardLayout({
     children,
 }: {
@@ -112,13 +114,41 @@ export default function DashboardLayout({
 
     return (
         <GolemProvider>
-            <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-                <DashboardSidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-                {/* Main Content */}
-                <main className="flex-1 overflow-auto bg-gray-950 flex flex-col h-screen">
-                    {children}
-                </main>
-            </div>
+            <DashboardContent isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
+                {children}
+            </DashboardContent>
         </GolemProvider>
+    );
+}
+
+function DashboardContent({
+    children,
+    isSidebarOpen,
+    setIsSidebarOpen
+}: {
+    children: React.ReactNode,
+    isSidebarOpen: boolean,
+    setIsSidebarOpen: (v: boolean) => void
+}) {
+    const { activeGolem, activeGolemStatus } = useGolem();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        if (activeGolemStatus === 'pending_setup' && pathname !== '/dashboard/setup') {
+            router.push('/dashboard/setup');
+        }
+    }, [activeGolemStatus, pathname, router]);
+
+    const isSetupPage = pathname === '/dashboard/setup';
+
+    return (
+        <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+            {!isSetupPage && <DashboardSidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />}
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto bg-gray-950 flex flex-col h-screen relative">
+                {children}
+            </main>
+        </div>
     );
 }

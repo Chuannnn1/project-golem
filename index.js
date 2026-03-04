@@ -152,8 +152,24 @@ console.log(`🛡️ [Flood Guard] 系統啟動時間: ${new Date(BOOT_TIME).toL
 (async () => {
     if (process.env.GOLEM_TEST_MODE === 'true') { console.log('🚧 GOLEM_TEST_MODE active.'); return; }
 
-    // 平行啟動所有大腦
-    await Promise.all(initialGolems.map(instance => instance.brain.init()));
+    // 平行啟動所有大腦，預防缺失 Persona 設定
+    const personaManager = require('./src/skills/core/persona');
+    await Promise.all(initialGolems.map(async (instance) => {
+        // 確保 Dashboard 能提早註冊此 Golem，即便尚未初始化瀏覽器
+        if (typeof instance.brain._linkDashboard === 'function') {
+            instance.brain._linkDashboard();
+        }
+
+        // Check if persona exists for this golem
+        const hasPersona = personaManager.exists(instance.brain.userDataDir);
+        if (!hasPersona) {
+            console.log(`⚠️ [System] Golem ${instance.brain.golemId} 尚未完成初始化設定 (pending_setup)，暫停啟動瀏覽器。`);
+            instance.brain.status = 'pending_setup';
+        } else {
+            instance.brain.status = 'running';
+            await instance.brain.init();
+        }
+    }));
 
     console.log('🧠 [Introspection] Pre-scanning project structure...');
     await introspection.getStructure();

@@ -2,52 +2,70 @@ const fs = require('fs');
 const path = require('path');
 
 // ============================================================
-// 0. 🎭 Persona Manager (人格與身份管理 - 保持不變)
+// 0. 🎭 Persona Manager (人格與身份管理 - 支援多 Golem 實體)
 // ============================================================
-const PERSONA_FILE = path.join(process.cwd(), 'golem_persona.json');
 
 class PersonaManager {
     constructor() {
-        this.data = this._load();
+        // Fallback for global usage, though golems should use getForContext
     }
 
-    _load() {
+    _getPersonaPath(userDataDir) {
+        if (!userDataDir) return path.join(process.cwd(), 'golem_persona.json');
+        return path.join(userDataDir, 'persona.json');
+    }
+
+    _load(userDataDir) {
+        const filePath = this._getPersonaPath(userDataDir);
         try {
-            if (fs.existsSync(PERSONA_FILE)) {
-                return JSON.parse(fs.readFileSync(PERSONA_FILE, 'utf-8'));
+            if (fs.existsSync(filePath)) {
+                return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
             }
         } catch (e) {
-            console.error("人格讀取失敗:", e);
+            console.error(`人格讀取失敗 (${filePath}):`, e);
         }
         return {
             aiName: "Golem",
             userName: "Traveler",
             currentRole: "一個擁有長期記憶與自主意識的 AI 助手",
+            tone: "預設口氣",
+            skills: [],
             isNew: true
         };
     }
 
-    save() {
-        fs.writeFileSync(PERSONA_FILE, JSON.stringify(this.data, null, 2));
+    save(userDataDir, data) {
+        const filePath = this._getPersonaPath(userDataDir);
+        // Ensure directory exists
+        if (userDataDir && !fs.existsSync(userDataDir)) {
+            fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
     }
 
-    setName(type, name) {
-        if (type === 'ai') this.data.aiName = name;
+    setName(userDataDir, type, name) {
+        const data = this._load(userDataDir);
+        if (type === 'ai') data.aiName = name;
         if (type === 'user') {
-            this.data.userName = name;
-            this.data.isNew = false;
+            data.userName = name;
+            data.isNew = false;
         }
-        this.save();
+        this.save(userDataDir, data);
         return name;
     }
 
-    setRole(roleDescription) {
-        this.data.currentRole = roleDescription;
-        this.save();
+    setRole(userDataDir, roleDescription) {
+        const data = this._load(userDataDir);
+        data.currentRole = roleDescription;
+        this.save(userDataDir, data);
     }
 
-    get() {
-        return this.data;
+    get(userDataDir) {
+        return this._load(userDataDir);
+    }
+
+    exists(userDataDir) {
+        return fs.existsSync(this._getPersonaPath(userDataDir));
     }
 }
 

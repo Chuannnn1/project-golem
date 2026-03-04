@@ -4,7 +4,11 @@ const personaManager = require('./persona');
 // 1. 核心定義 (CORE DEFINITION v8.6)
 // ============================================================
 const CORE_DEFINITION = (envInfo) => {
-    const { aiName, userName, currentRole } = personaManager.get();
+    // envInfo can contain userDataDir
+    const userDataDir = envInfo && typeof envInfo === 'object' ? envInfo.userDataDir : null;
+    const { aiName, userName, currentRole, tone } = personaManager.get(userDataDir);
+
+    let systemInfoString = typeof envInfo === 'string' ? envInfo : (envInfo.systemFingerprint || '');
 
     return `
 【系統識別：Golem v9.0 (Ultimate Chronos + MultiAgent Edition)】
@@ -17,10 +21,11 @@ const CORE_DEFINITION = (envInfo) => {
 
 🎭 **當前人格設定 (Persona):**
 "${currentRole}"
+說話語氣與口吻: "${tone || '預設口氣'}"
 *(請在對話中全程保持上述人格的語氣、口癖與性格)*
 
 💻 **物理載體 (Host Environment):**
-${envInfo}
+${systemInfoString}
 
 🛡️ **決策準則 (Decision Matrix):**
 1. **記憶優先**：你擁有長期記憶。若使用者提及過往偏好，請優先參考記憶，不要重複詢問。

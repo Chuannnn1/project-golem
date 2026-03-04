@@ -306,7 +306,7 @@ class GolemBrain {
      * @param {boolean} [forceRefresh=false]
      */
     async _injectSystemPrompt(forceRefresh = false) {
-        let { systemPrompt, skillMemoryText } = await ProtocolFormatter.buildSystemPrompt(forceRefresh);
+        let { systemPrompt, skillMemoryText } = await ProtocolFormatter.buildSystemPrompt(forceRefresh, { userDataDir: this.userDataDir });
 
         if (skillMemoryText) {
             await this.memorize(skillMemoryText, { type: 'system_skills', source: 'boot_init' });

@@ -145,7 +145,7 @@ class WebServer {
                 process.env.OPTIONAL_SKILLS = newSkillsStr;
 
                 // 2. Persist to .env
-                const envPath = path.resolve(process.cwd(), '../.env'); // web-dashboard is in a subfolder
+                const envPath = path.resolve(process.cwd(), '.env'); // Fixed: directly in root if started from root
                 if (fs.existsSync(envPath)) {
                     let envContent = fs.readFileSync(envPath, 'utf8');
 
@@ -183,8 +183,99 @@ class WebServer {
             }
         });
 
+        this.app.get('/api/golems/templates', (req, res) => {
+            const personasDir = path.resolve(process.cwd(), 'personas');
+            if (!fs.existsSync(personasDir)) {
+                return res.json({ templates: [] });
+            }
+
+            try {
+                const files = fs.readdirSync(personasDir).filter(f => f.endsWith('.md'));
+                const templates = files.map(file => {
+                    const content = fs.readFileSync(path.join(personasDir, file), 'utf8');
+                    const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+
+                    if (frontmatterMatch) {
+                        const yamlStr = frontmatterMatch[1];
+                        const body = frontmatterMatch[2].trim();
+
+                        // Simple YAML parser (since we don't have a yaml library here)
+                        const metadata = {};
+                        yamlStr.split('\n').forEach(line => {
+                            const [key, ...valParts] = line.split(':');
+                            if (key && valParts.length > 0) {
+                                let val = valParts.join(':').trim();
+                                if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+                                if (val.startsWith('[') && val.endsWith(']')) {
+                                    val = val.slice(1, -1).split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(s => s !== '');
+                                }
+                                metadata[key.trim()] = val;
+                            }
+                        });
+
+                        return {
+                            id: file.replace('.md', ''),
+                            name: metadata.name || file,
+                            description: metadata.description || '',
+                            icon: metadata.icon || 'BrainCircuit',
+                            aiName: metadata.aiName || 'Golem',
+                            userName: metadata.userName || 'Traveler',
+                            role: body || metadata.role || '',
+                            tone: metadata.tone || '',
+                            tags: metadata.tags || [],
+                            skills: metadata.skills || []
+                        };
+                    }
+                    return null;
+                }).filter(t => t !== null);
+
+                return res.json({ templates });
+            } catch (e) {
+                console.error("Failed to load persona templates:", e);
+                return res.status(500).json({ error: e.message });
+            }
+        });
+
         this.app.get('/api/golems', (req, res) => {
-            return res.json({ golems: Array.from(this.contexts.keys()) });
+            const golemsData = Array.from(this.contexts.entries()).map(([id, context]) => {
+                const status = (context.brain && context.brain.status) || 'running';
+                return { id, status };
+            });
+            return res.json({ golems: golemsData });
+        });
+
+        this.app.post('/api/golems/setup', async (req, res) => {
+            const { golemId, aiName, userName, currentRole, tone, skills } = req.body;
+            if (!golemId) return res.status(400).json({ error: "Missing golemId" });
+
+            const context = this.contexts.get(golemId);
+            if (!context || !context.brain) return res.status(404).json({ error: "Golem not found" });
+
+            try {
+                const personaManager = require('../src/skills/core/persona');
+                personaManager.save(context.brain.userDataDir, {
+                    aiName: aiName || "Golem",
+                    userName: userName || "Traveler",
+                    currentRole: currentRole || "一個擁有長期記憶與自主意識的 AI 助手",
+                    tone: tone || "預設口氣",
+                    skills: skills || [],
+                    isNew: false
+                });
+
+                // Update status and initialize
+                context.brain.status = 'running';
+
+                // Initialize asynchronously so we don't block the request
+                context.brain.init().catch(err => {
+                    console.error(`Failed to initialize Golem [${golemId}]:`, err);
+                    context.brain.status = 'error';
+                });
+
+                return res.json({ success: true, message: "Golem setup initiated" });
+            } catch (e) {
+                console.error("Setup error:", e);
+                return res.status(500).json({ error: e.message });
+            }
         });
 
         this.app.get('/api/memory', async (req, res) => {
@@ -313,6 +404,13 @@ class WebServer {
 
         // Socket.io connection handler
         this.io.on('connection', (socket) => {
+            const getGolemsData = () => {
+                return Array.from(this.contexts.entries()).map(([id, context]) => {
+                    const status = (context.brain && context.brain.status) || 'running';
+                    return { id, status };
+                });
+            };
+
             // Send initial state upon connection
             if (this.dashboard) {
                 socket.emit('init', {
@@ -320,7 +418,7 @@ class WebServer {
                     lastSchedule: this.dashboard.lastSchedule,
                     uptime: process.uptime(),
                     logs: this.logBuffer, // Send buffered logs
-                    golems: Array.from(this.contexts.keys()) // Send active golems
+                    golems: getGolemsData() // Send active golems
                 });
             } else {
                 socket.emit('init', {
@@ -328,7 +426,7 @@ class WebServer {
                     lastSchedule: 'N/A',
                     uptime: process.uptime(),
                     logs: this.logBuffer,
-                    golems: Array.from(this.contexts.keys())
+                    golems: getGolemsData()
                 });
             }
 

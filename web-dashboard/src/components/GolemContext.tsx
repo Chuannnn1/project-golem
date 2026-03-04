@@ -3,14 +3,21 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { socket } from "@/lib/socket";
 
+interface GolemInfo {
+    id: string;
+    status: string;
+}
+
 interface GolemContextType {
     activeGolem: string;
+    activeGolemStatus: string;
     setActiveGolem: (id: string) => void;
-    golems: string[];
+    golems: GolemInfo[];
 }
 
 const GolemContext = createContext<GolemContextType>({
     activeGolem: "",
+    activeGolemStatus: "running",
     setActiveGolem: () => { },
     golems: [],
 });
@@ -18,7 +25,7 @@ const GolemContext = createContext<GolemContextType>({
 export const useGolem = () => useContext(GolemContext);
 
 export function GolemProvider({ children }: { children: React.ReactNode }) {
-    const [golems, setGolems] = useState<string[]>([]);
+    const [golems, setGolems] = useState<GolemInfo[]>([]);
     const [activeGolem, setActiveGolem] = useState<string>("");
 
     useEffect(() => {
@@ -29,12 +36,13 @@ export function GolemProvider({ children }: { children: React.ReactNode }) {
                     if (data.golems && data.golems.length > 0) {
                         setGolems(data.golems);
                         setActiveGolem((currentActive) => {
-                            if (!currentActive || !data.golems.includes(currentActive)) {
+                            const ids = data.golems.map((g: GolemInfo) => g.id);
+                            if (!currentActive || !ids.includes(currentActive)) {
                                 const saved = localStorage.getItem("golem_active_id");
-                                if (saved && data.golems.includes(saved)) {
+                                if (saved && ids.includes(saved)) {
                                     return saved;
                                 }
-                                return data.golems[0];
+                                return data.golems[0].id;
                             }
                             return currentActive;
                         });
@@ -52,9 +60,15 @@ export function GolemProvider({ children }: { children: React.ReactNode }) {
         // Socket updates 
         const handleInit = (data: any) => {
             if (data.golems) {
-                setGolems(data.golems);
+                // If it's a string array (backward compatibility), map it to objects.
+                // Assuming the new backend sends {id, status} array:
+                const formattedGolems = typeof data.golems[0] === 'string'
+                    ? data.golems.map((id: string) => ({ id, status: 'running' }))
+                    : data.golems;
+
+                setGolems(formattedGolems);
                 setActiveGolem(prev => {
-                    if (!prev && data.golems.length > 0) return data.golems[0];
+                    if (!prev && formattedGolems.length > 0) return formattedGolems[0].id;
                     return prev;
                 });
             }
@@ -80,8 +94,11 @@ export function GolemProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("golem_active_id", id);
     };
 
+    const activeGolemObj = golems.find((g: GolemInfo) => g.id === activeGolem);
+    const activeGolemStatus = activeGolemObj?.status || "running";
+
     return (
-        <GolemContext.Provider value={{ activeGolem, setActiveGolem: handleSetGolem, golems }}>
+        <GolemContext.Provider value={{ activeGolem, activeGolemStatus, setActiveGolem: handleSetGolem, golems }}>
             {children}
         </GolemContext.Provider>
     );

@@ -107,17 +107,31 @@ ${text}`;
     /**
      * 組裝完整的系統 Prompt (包含動態掃描 lib/ 下的 .md 檔)
      * @param {boolean} [forceRefresh=false] - 是否強制重新掃描
+     * @param {Object} [golemContext={}] - 包含 golem 特定資訊，如 userDataDir
      * @returns {Promise<{ systemPrompt: string, skillMemoryText: string|null }>}
      */
-    static async buildSystemPrompt(forceRefresh = false) {
+    static async buildSystemPrompt(forceRefresh = false, golemContext = {}) {
         const now = Date.now();
-        if (!forceRefresh && ProtocolFormatter._cachedPrompt && (now - ProtocolFormatter._lastScanTime < ProtocolFormatter.CACHE_TTL)) {
+        // 如果有 specific user data dir，我們可能不想使用全域 cache，或是將 cache key 改為含 userDataDir
+        const cacheKey = golemContext.userDataDir || 'global';
+
+        if (!ProtocolFormatter._promptCache) {
+            ProtocolFormatter._promptCache = {};
+        }
+
+        if (!forceRefresh && ProtocolFormatter._promptCache[cacheKey] && (now - ProtocolFormatter._lastScanTime < ProtocolFormatter.CACHE_TTL)) {
             console.log("⚡ [ProtocolFormatter] 使用快取的系統協議 (Cache Hit)");
-            return { systemPrompt: ProtocolFormatter._cachedPrompt, skillMemoryText: ProtocolFormatter._cachedMemoryText };
+            return ProtocolFormatter._promptCache[cacheKey];
         }
 
         const systemFingerprint = getSystemFingerprint();
-        let systemPrompt = skills.getSystemPrompt(systemFingerprint);
+
+        const envInfo = {
+            systemFingerprint,
+            userDataDir: golemContext.userDataDir
+        };
+
+        let systemPrompt = skills.getSystemPrompt(envInfo);
         let skillMemoryText = "【系統技能庫初始化】我目前已掛載並精通以下可用技能：\n";
 
         // --- [優化] 使用 Promise.all 平行掃描 src/skills/lib/*.md ---
@@ -127,7 +141,17 @@ ${text}`;
             const mdFiles = files.filter(f => f.endsWith('.md'));
 
             if (mdFiles.length > 0) {
-                // Parse optional skills from environment variable
+                // Parse optional skills from environment variable AND golem persona preferences if any
+                // The persona setup will allow overwriting optional skills for specific golems
+                let personaSkills = [];
+                if (golemContext.userDataDir) {
+                    const personaManager = require('../skills/core/persona');
+                    const personaData = personaManager.get ? personaManager.get(golemContext.userDataDir) : null;
+                    if (personaData && personaData.skills) {
+                        personaSkills = personaData.skills;
+                    }
+                }
+
                 const optionalSkillsConfig = process.env.OPTIONAL_SKILLS || '';
                 const enabledOptionalSkills = optionalSkillsConfig.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
 
@@ -135,13 +159,13 @@ ${text}`;
                 const ALL_OPTIONAL_SKILLS = ['git.md', 'image-prompt.md', 'moltbot.md', 'spotify.md', 'youtube.md'];
 
                 // Filter the mdFiles: keep if it's NOT in ALL_OPTIONAL_SKILLS (meaning it's mandatory), 
-                // OR if it IS in ALL_OPTIONAL_SKILLS and is enabled in the .env
+                // OR if it IS in ALL_OPTIONAL_SKILLS and is enabled in the .env OR by persona
                 const filteredMdFiles = mdFiles.filter(file => {
                     const isOptional = ALL_OPTIONAL_SKILLS.includes(file);
                     if (!isOptional) return true; // Mandatory skill
 
                     const baseName = file.replace('.md', '').toLowerCase();
-                    return enabledOptionalSkills.includes(baseName);
+                    return enabledOptionalSkills.includes(baseName) || personaSkills.includes(baseName);
                 });
 
                 console.log(`📡 [ProtocolFormatter] 正在平行讀取 ${filteredMdFiles.length} 個技能說明書...`);
@@ -217,11 +241,11 @@ Your response must be strictly divided into these 3 sections:
         console.log(`📡 [Protocol] 系統協議組裝完成，總長度: ${finalPrompt.length} 字元`);
 
         // 更新快取
-        ProtocolFormatter._cachedPrompt = finalPrompt;
-        ProtocolFormatter._cachedMemoryText = skillMemoryText;
+        if (!ProtocolFormatter._promptCache) ProtocolFormatter._promptCache = {};
+        ProtocolFormatter._promptCache[cacheKey] = { systemPrompt: finalPrompt, skillMemoryText };
         ProtocolFormatter._lastScanTime = now;
 
-        return { systemPrompt: finalPrompt, skillMemoryText };
+        return ProtocolFormatter._promptCache[cacheKey];
     }
 
     /**
