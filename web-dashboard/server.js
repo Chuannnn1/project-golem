@@ -555,9 +555,11 @@ class WebServer {
             // Small delay to ensure the response is sent before the process exits
             setTimeout(() => {
                 const { spawn } = require('child_process');
+                const env = Object.assign({}, process.env, { SKIP_BROWSER: '1' });
                 const subprocess = spawn(process.argv[0], process.argv.slice(1), {
                     detached: true,
-                    stdio: 'ignore'
+                    stdio: 'ignore',
+                    env: env
                 });
                 subprocess.unref();
                 process.exit(0);
@@ -615,10 +617,21 @@ class WebServer {
             const url = `http://localhost:${this.port}/dashboard`;
             console.log(`🚀 [WebServer] Dashboard running at ${url}`);
 
-            // Auto-open browser (MacOS 'open', Windows 'start', Linux 'xdg-open')
-            const startCmd = process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open';
-            const { exec } = require('child_process');
-            exec(`${startCmd} ${url}`);
+            if (!process.env.SKIP_BROWSER) {
+                // Wait briefly to see if an existing dashboard tab reconnects
+                // before opening a new one. (Socket.io clients auto-reconnect)
+                setTimeout(() => {
+                    const connectedClients = this.io.engine.clientsCount;
+                    if (connectedClients === 0) {
+                        // Auto-open browser (MacOS 'open', Windows 'start', Linux 'xdg-open')
+                        const startCmd = process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open';
+                        const { exec } = require('child_process');
+                        exec(`${startCmd} ${url}`);
+                    } else {
+                        console.log(`🌐 [WebServer] Existing dashboard tab detected (${connectedClients} connection/s). Skipping auto-open.`);
+                    }
+                }, 1500);
+            }
         });
     }
 
