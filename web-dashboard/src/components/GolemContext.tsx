@@ -24,7 +24,7 @@ interface GolemContextType {
 
 const GolemContext = createContext<GolemContextType>({
     activeGolem: "",
-    activeGolemStatus: "running",
+    activeGolemStatus: "", // ✅ [Bug #3 修復] 預設為空字串，避免載入中誤顯示 "running"
     setActiveGolem: () => { },
     golems: [],
     hasGolems: false,
@@ -143,7 +143,7 @@ export function GolemProvider({ children }: { children: React.ReactNode }) {
     };
 
     const activeGolemObj = golems.find((g: GolemInfo) => g.id === activeGolem);
-    const activeGolemStatus = activeGolemObj?.status || "running";
+    const activeGolemStatus = activeGolemObj?.status ?? ""; // ✅ [Bug #3 修復] 空字串，避免誤顯示為 running
     const hasGolems = golems.length > 0;
 
     return (

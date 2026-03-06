@@ -453,9 +453,9 @@ class WebServer {
                                 if (targetId) {
                                     tgBot.sendMessage(targetId, msg, { parse_mode: 'Markdown' })
                                         .catch(e => console.warn(`⚠️ [WebServer] TG skill notify failed [${id}]:`, e.message));
-                                    // 重啟通知
-                                    tgBot.sendMessage(targetId, `🔄 *[${id}] Golem 重啟中，請稍候...*\n技能配置已更新，正在重新載入記憶與技能書。`, { parse_mode: 'Markdown' })
-                                        .catch(e => console.warn(`⚠️ [WebServer] TG restart notify failed [${id}]:`, e.message));
+                                    // 確認通知
+                                    tgBot.sendMessage(targetId, `🔄 *[${id}] 技能書注入完成*\n已為您重新開啟全新的 Gemini 對話視窗並注入技能，人格設定與歷史記憶已完整保留，不需重新設定。`, { parse_mode: 'Markdown' })
+                                        .catch(e => console.warn(`⚠️ [WebServer] TG inject notify failed [${id}]:`, e.message));
                                 }
                             }
                         } catch (e) {
@@ -578,10 +578,10 @@ class WebServer {
                         if (context && context.brain) {
                             status = context.brain.status || 'running';
                         } else {
-                            // 檢查是否需要執行初始化設定 (Persona 是否存在)
-                            const personaManager = require('../src/skills/core/persona');
-                            const userDataDir = envVars.USER_DATA_DIR || './golem_memory';
-                            const personaPath = path.resolve(process.cwd(), userDataDir, 'persona.json');
+                            // ✅ [Bug #4 修復] 使用 MEMORY_BASE_DIR 來正確計算 persona.json 路徑
+                            // 路徑格式應為 <USER_DATA_DIR>/single/persona.json
+                            const { MEMORY_BASE_DIR } = require('../src/config/index');
+                            const personaPath = path.resolve(MEMORY_BASE_DIR, 'persona.json');
                             if (!fs.existsSync(personaPath)) {
                                 status = 'pending_setup';
                             }
@@ -731,6 +731,27 @@ class WebServer {
                     // 關鍵修正：寫入 .env 後必須熱重載，否則後續 Setup API 會找不到設定
                     const ConfigManager = require('../src/config/index');
                     ConfigManager.reloadConfig();
+
+                    // ✅ [Bug #2 修復] Single Mode 也需呼叫 golemFactory 以建立帶有 tgBot 的實體
+                    // 讓後續 Setup API 能找到 context 並正確啟動 polling
+                    if (typeof this.golemFactory === 'function') {
+                        const { CONFIG: freshConfig, GOLEMS_CONFIG: freshGolemsConfig } = require('../src/config/index');
+                        const singleGolemConfig = freshGolemsConfig.find(g => g.id === 'golem_A') || {
+                            id: 'golem_A',
+                            tgToken: tgToken,
+                            tgAuthMode: tgAuthMode || 'ADMIN',
+                            adminId: tgAdminId,
+                            chatId: tgChatId,
+                            dcToken: dcToken,
+                            dcAdminId: dcAdminId,
+                        };
+                        try {
+                            await this.golemFactory(singleGolemConfig);
+                            console.log(`✅ [WebServer] Single Mode golem_A instance created via factory.`);
+                        } catch (factoryErr) {
+                            console.error(`❌ [WebServer] Single Mode golem_A factory failed:`, factoryErr.message);
+                        }
+                    }
 
                     return res.json({ success: true, mode: 'SINGLE', id: 'golem_A', message: 'Single Mode configuration updated successfully.' });
                 }

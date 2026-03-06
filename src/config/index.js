@@ -88,10 +88,11 @@ GOLEMS_CONFIG = GOLEMS_CONFIG.filter(g => {
 });
 
 // 計算 mode-aware 路徑前綴
-const MODE_DIR = GOLEM_MODE === 'SINGLE' ? 'single' : 'multi';
-const LOG_BASE_DIR = path.join(process.cwd(), 'logs', MODE_DIR);
-const MEMORY_BASE_DIR = path.resolve(CONFIG.USER_DATA_DIR || './golem_memory', MODE_DIR);
-const KNOWLEDGE_BASE_DIR = path.join(process.cwd(), 'golem_memory', MODE_DIR, 'knowledge');
+// ✅ [Bug #5 修復] 改為 let，讓 reloadConfig() 能在切換模式時同步更新路徑
+let MODE_DIR = GOLEM_MODE === 'SINGLE' ? 'single' : 'multi';
+let LOG_BASE_DIR = path.join(process.cwd(), 'logs', MODE_DIR);
+let MEMORY_BASE_DIR = path.resolve(CONFIG.USER_DATA_DIR || './golem_memory', MODE_DIR);
+let KNOWLEDGE_BASE_DIR = path.join(process.cwd(), 'golem_memory', MODE_DIR, 'knowledge');
 
 // 🔄 熱重載支援函數
 const reloadConfig = () => {
@@ -161,7 +162,14 @@ const reloadConfig = () => {
         }
     }
 
-    console.log(`🔄 [Config] 設定已熱重載完成 (Active API Keys: ${CONFIG.API_KEYS.length}, Golems: ${GOLEMS_CONFIG.length})`);
+    // ✅ [Bug #5 修復] 同步更新 mode-aware 路徑常數
+    const newModeDir = (freshEnv.GOLEM_MODE || '').trim().toUpperCase() === 'SINGLE' ? 'single' : 'multi';
+    MODE_DIR = newModeDir;
+    LOG_BASE_DIR = path.join(process.cwd(), 'logs', newModeDir);
+    MEMORY_BASE_DIR = path.resolve(process.env.USER_DATA_DIR || CONFIG.USER_DATA_DIR || './golem_memory', newModeDir);
+    KNOWLEDGE_BASE_DIR = path.join(process.cwd(), 'golem_memory', newModeDir, 'knowledge');
+
+    console.log(`🔄 [Config] 設定已熱重載完成 (Active API Keys: ${CONFIG.API_KEYS.length}, Golems: ${GOLEMS_CONFIG.length}, Mode: ${MODE_DIR})`);
 };
 
 module.exports = {

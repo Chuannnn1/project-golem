@@ -32,22 +32,22 @@ function InjectConfirmDialog({
                     <div className="w-12 h-12 rounded-xl border bg-cyan-500/10 border-cyan-500/20 flex items-center justify-center mb-2">
                         <Zap className="w-5 h-5 text-cyan-400" />
                     </div>
-                    <DialogTitle className="text-white text-base">注入技能書並重啟 Golem？</DialogTitle>
+                    <DialogTitle className="text-white text-base">注入技能書？</DialogTitle>
                     <DialogDescription className="text-gray-400 text-sm leading-relaxed">
-                        系統將依據目前技能配置重新注入技能書，並完整重啟 Golem，讓記憶與技能書正確載入。
+                        系統將依據目前配置，重新開啟全新的 Gemini 對話視窗進行注入。過往設定的人格與歷史記憶將會完整保留。
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2">
                     <div className="flex items-start gap-2 rounded-lg bg-gray-800/60 border border-gray-700/50 px-3 py-2.5">
                         <TriangleAlert className="w-3.5 h-3.5 text-gray-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-gray-500">進行中的對話將被中斷，前端會短暫斷線後自動重連。</p>
+                        <p className="text-xs text-gray-500">此動作將暫時開新視窗中斷目前對話，但人格設定與長期記憶不受影響。</p>
                     </div>
                     <div className="rounded-lg bg-gray-800/40 border border-gray-700/30 px-3 py-2">
                         <p className="text-[11px] text-gray-500 mb-1 font-medium">確認後將自動執行：</p>
                         <ol className="text-[11px] text-gray-400 space-y-0.5 list-decimal list-inside">
-                            <li>將最新技能配置寫入 Golem</li>
-                            <li>重啟 Golem 程序</li>
-                            <li>重新載入所有記憶與技能書</li>
+                            <li>清除技能快取</li>
+                            <li>重新開啟 Gemini 通訊視窗</li>
+                            <li>自存檔載入人格，並注入所有技能記憶</li>
                         </ol>
                     </div>
                 </div>
@@ -74,11 +74,11 @@ function InjectDoneDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-sm" showCloseButton={false}>
                 <DialogHeader>
                     <div className="w-12 h-12 rounded-xl border bg-green-500/10 border-green-500/20 flex items-center justify-center mb-2">
-                        <RefreshCcw className="w-5 h-5 text-green-400 animate-spin" />
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
                     </div>
-                    <DialogTitle className="text-white text-base">Golem 重啟中...</DialogTitle>
+                    <DialogTitle className="text-white text-base">技能注入完成 ✅</DialogTitle>
                     <DialogDescription className="text-gray-400 text-sm">
-                        技能書已更新，Golem 正在重啟並重新載入記憶。頁面將在 5 秒後自動重新整理。
+                        已於新的 Gemini 對話視窗中完成注入。人格設定與歷史記憶已從存檔完整還原，3 秒後自動關閉。
                     </DialogDescription>
                 </DialogHeader>
             </DialogContent>
@@ -265,14 +265,16 @@ export default function SkillsPage() {
                 setShowConfirm(false);
                 setHasUnsyncedChanges(false);
                 setShowDone(true);
-                // give it a moment, then restart system
+                // ✅ [修復] 不再重啟整個程序（會導致 golem 狀態重置到 pending_setup）
+                // reloadSkills() 現在直接對 Gemini 重注入，技能即時生效
+                // 3 秒後關閉 "完成" Dialog 並刷新技能列表
                 setTimeout(() => {
-                    fetch("/api/system/reload", { method: "POST" }).catch(console.error);
-                }, 1500);
-
-                setTimeout(() => {
-                    window.location.reload();
-                }, 5000); // Reload page after 5 secs
+                    setShowDone(false);
+                    setIsInjecting(false);
+                    loadSkills();
+                }, 3000);
+            } else {
+                setIsInjecting(false);
             }
         } catch (err) {
             console.error(err);

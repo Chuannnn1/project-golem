@@ -83,6 +83,9 @@ const telegramBots = new Map();
 const discordBots = new Map();
 const activeGolems = new Map();
 
+// ✅ [Bug #6 修復] 啟動時間戳記，用於過濾重啟前的舊訊息
+const BOOT_TIME = Date.now();
+
 const dcClient = CONFIG.DC_TOKEN ? new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -206,6 +209,33 @@ function getOrCreateGolem(golemId) {
                         }
                     });
                     telegramBots.set(golemConfig.id, bot);
+
+                    // ✅ [Bug #1 修復] 在 factory 內部動態綁定事件，確保動態建立的 Bot 也能接收訊息
+                    const boundGolemId = golemConfig.id;
+                    bot.on('message', async (msg) => {
+                        try {
+                            await handleUnifiedMessage(new UniversalContext('telegram', msg, bot), boundGolemId);
+                        } catch (e) {
+                            console.error(`❌ [TG ${boundGolemId}] Message Handler Error:`, e);
+                        }
+                    });
+                    bot.on('callback_query', async (query) => {
+                        try {
+                            await bot.answerCallbackQuery(query.id);
+                        } catch (e) {
+                            console.warn(`⚠️ [TG ${boundGolemId}] Callback Answer Warning: ${e.message}`);
+                        }
+                        try {
+                            await handleUnifiedCallback(
+                                new UniversalContext('telegram', query, bot),
+                                query.data,
+                                boundGolemId
+                            );
+                        } catch (e) {
+                            console.error(`❌ [TG ${boundGolemId}] Callback Handler Error:`, e);
+                        }
+                    });
+                    console.log(`🔗 [Factory] TG events bound for Golem [${boundGolemId}]`);
                 } catch (e) {
                     console.error(`❌ [Bot] 初始化 ${golemConfig.id} Telegram 失敗:`, e.message);
                 }
@@ -673,32 +703,10 @@ async function executeDrop(ctx, targetId) {
     await ctx.reply(`🗑️ [${targetId}] 提案已丟棄`);
 }
 
+// ✅ [Bug #1 修復] TG Bot 事件綁定已移入 golemFactory 內部動態處理。
+// 此靜態迴圈在啟動時 telegramBots 為空，保留為向後相容的空迴圈。
 for (const [golemId, bot] of telegramBots.entries()) {
-    bot.on('message', async (msg) => {
-        try {
-            await handleUnifiedMessage(new UniversalContext('telegram', msg, bot), golemId);
-        } catch (e) {
-            console.error(`❌ [TG ${golemId}] Message Handler Error:`, e);
-        }
-    });
-
-    bot.on('callback_query', async (query) => {
-        try {
-            await bot.answerCallbackQuery(query.id);
-        } catch (e) {
-            console.warn(`⚠️ [TG ${golemId}] Callback Answer Warning: ${e.message}`);
-        }
-
-        try {
-            await handleUnifiedCallback(
-                new UniversalContext('telegram', query, bot),
-                query.data,
-                golemId
-            );
-        } catch (e) {
-            console.error(`❌ [TG ${golemId}] Callback Handler Error:`, e);
-        }
-    });
+    // (No-op: events are now bound dynamically in golemFactory)
 }
 
 if (dcClient) {

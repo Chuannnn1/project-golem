@@ -308,14 +308,28 @@ class GolemBrain {
     }
 
     /**
-     * 🔄 對外公開：重新組裝技能書並注入 Gemini（不含歷史日誌回放）
+     * 🔄 對外公開：重新組裝技能書並注入 Gemini（開啟全新的聊天視窗）
      * 供 Dashboard 的「注入技能書」按鈕使用
+     * ✅ [需求變更] 依據使用者要求，禁止即時熱注入，改為「重新開啟 Gemini 對話視窗」後再注入
      */
     async reloadSkills() {
-        // 只清除快取，讓 .env 的技能設定生效
-        // 實際注入由重啟後的 _injectSystemPrompt 負責
+        // 1. 清除 ProtocolFormatter 快取，讓下次 build 時重新掃描
         ProtocolFormatter._lastScanTime = 0;
-        console.log(`🔄 [Brain] 技能快取已清除，等待重啟後重新載入。`);
+        console.log(`🔄 [Brain][${this.golemId}] 技能快取已清除，開始重新開啟對話視窗並注入...`);
+
+        // 2. 若瀏覽器還沒準備好，直接返回（表示本次注入會在下次 init 時生效）
+        if (!this.page) {
+            console.log(`⚠️ [Brain][${this.golemId}] 瀏覽器尚未初始化，技能將在下次啟動時自動載入。`);
+            return;
+        }
+
+        // 3. 重新開啟 Gemini 視窗 (New Chat) 後再注入
+        console.log(`🔄 [Brain][${this.golemId}] 正在開啟新的 Gemini 對話視窗...`);
+        const { URLS } = require('./constants');
+        await this.page.goto(URLS.GEMINI_APP, { waitUntil: 'networkidle2' });
+
+        await this._injectSystemPrompt(true);
+        console.log(`✅ [Brain][${this.golemId}] 技能書已成功注入至全新的 Gemini 會話。`);
     }
 
     /**
