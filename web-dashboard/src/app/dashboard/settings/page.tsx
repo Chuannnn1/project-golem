@@ -568,6 +568,47 @@ export default function SettingsPage() {
                             />
                         </div>
 
+                        {/* Section: Autonomy Schedule */}
+                        <div className="bg-gray-900/30 border border-gray-800 hover:border-blue-900/30 transition-colors rounded-xl p-5 shadow-sm">
+                            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                ⏳ 自動化與作息設定
+                            </h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <SettingField
+                                    label="喚醒間隔 (最小)"
+                                    keyName="GOLEM_AWAKE_INTERVAL_MIN"
+                                    placeholder="2"
+                                    desc="最短幾小時主動喚醒一次"
+                                    value={config.env.GOLEM_AWAKE_INTERVAL_MIN || ""}
+                                    onChange={(val) => handleChangeEnv("GOLEM_AWAKE_INTERVAL_MIN", val)}
+                                />
+                                <SettingField
+                                    label="喚醒間隔 (最大)"
+                                    keyName="GOLEM_AWAKE_INTERVAL_MAX"
+                                    placeholder="5"
+                                    desc="最長幾小時主動喚醒一次"
+                                    value={config.env.GOLEM_AWAKE_INTERVAL_MAX || ""}
+                                    onChange={(val) => handleChangeEnv("GOLEM_AWAKE_INTERVAL_MAX", val)}
+                                />
+                                <SettingField
+                                    label="夜間休眠開始"
+                                    keyName="GOLEM_SLEEP_START"
+                                    placeholder="1"
+                                    desc="24小時制，預設 1"
+                                    value={config.env.GOLEM_SLEEP_START || ""}
+                                    onChange={(val) => handleChangeEnv("GOLEM_SLEEP_START", val)}
+                                />
+                                <SettingField
+                                    label="夜間休眠結束"
+                                    keyName="GOLEM_SLEEP_END"
+                                    placeholder="7"
+                                    desc="24小時制，預設 7"
+                                    value={config.env.GOLEM_SLEEP_END || ""}
+                                    onChange={(val) => handleChangeEnv("GOLEM_SLEEP_END", val)}
+                                />
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -583,7 +624,9 @@ export default function SettingsPage() {
                                     'GEMINI_API_KEYS', 'TELEGRAM_TOKEN', 'TG_AUTH_MODE', 'ADMIN_ID', 'TG_CHAT_ID',
                                     'DISCORD_TOKEN', 'DISCORD_ADMIN_ID', 'USER_DATA_DIR', 'GOLEM_TEST_MODE',
                                     'GOLEM_MODE', 'GOLEM_MEMORY_MODE', 'GITHUB_REPO',
-                                    'MOLTBOOK_API_KEY', 'MOLTBOOK_AGENT_NAME'
+                                    'MOLTBOOK_API_KEY', 'MOLTBOOK_AGENT_NAME',
+                                    'GOLEM_AWAKE_INTERVAL_MIN', 'GOLEM_AWAKE_INTERVAL_MAX',
+                                    'GOLEM_SLEEP_START', 'GOLEM_SLEEP_END'
                                 ].includes(k))
                                 .map(key => (
                                     <div key={key}>

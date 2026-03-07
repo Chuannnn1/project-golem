@@ -140,14 +140,29 @@ class AutonomyManager {
         }
     }
     scheduleNextAwakening() {
-        const waitMs = (2 + Math.random() * 3) * 3600000;
+        const minHours = CONFIG.AWAKE_INTERVAL_MIN || 2;
+        const maxHours = CONFIG.AWAKE_INTERVAL_MAX || 5;
+        const randomHours = minHours + Math.random() * (maxHours - minHours);
+        const waitMs = randomHours * 3600000;
         const nextWakeTime = new Date(Date.now() + waitMs);
         const hour = nextWakeTime.getHours();
         let finalWait = waitMs;
-        if (hour >= 1 && hour <= 7) {
-            console.log("💤 Golem 休息中...");
+        const sleepStart = CONFIG.SLEEP_START !== undefined ? CONFIG.SLEEP_START : 1;
+        const sleepEnd = CONFIG.SLEEP_END !== undefined ? CONFIG.SLEEP_END : 7;
+
+        // 處理跨夜情況 (例如 23:00 ~ 07:00)
+        let isSleeping = false;
+        if (sleepStart > sleepEnd) {
+            isSleeping = hour >= sleepStart || hour < sleepEnd;
+        } else {
+            isSleeping = hour >= sleepStart && hour < sleepEnd;
+        }
+
+        if (isSleeping) {
+            console.log(`💤 Golem 休息中... (休眠時段: ${sleepStart}:00 ~ ${sleepEnd}:00)`);
             const morning = new Date(nextWakeTime);
-            morning.setHours(8, 0, 0, 0);
+            // 設定為稍微延後一點的時間 (例如 07:00 後加 1 小時也就是 08:00)
+            morning.setHours(sleepEnd + 1, 0, 0, 0);
             if (morning < nextWakeTime) morning.setDate(morning.getDate() + 1);
             finalWait = morning.getTime() - Date.now();
         }

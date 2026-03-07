@@ -29,7 +29,11 @@ const CONFIG = {
     QMD_PATH: cleanEnv(process.env.GOLEM_QMD_PATH || 'qmd', true),
     DONATE_URL: 'https://buymeacoffee.com/arvincreator',
     TZ: cleanEnv(process.env.TZ) || 'Asia/Taipei',
-    INTERVENTION_LEVEL: cleanEnv(process.env.GOLEM_INTERVENTION_LEVEL) || 'CONSERVATIVE'
+    INTERVENTION_LEVEL: cleanEnv(process.env.GOLEM_INTERVENTION_LEVEL) || 'CONSERVATIVE',
+    AWAKE_INTERVAL_MIN: Number(cleanEnv(process.env.GOLEM_AWAKE_INTERVAL_MIN)) || 2, // 預設最小 2 小時
+    AWAKE_INTERVAL_MAX: Number(cleanEnv(process.env.GOLEM_AWAKE_INTERVAL_MAX)) || 5,  // 預設最大 5 小時 (2 + 3)
+    SLEEP_START: process.env.GOLEM_SLEEP_START !== undefined ? Number(cleanEnv(process.env.GOLEM_SLEEP_START)) : 1, // 預設凌晨 1 點
+    SLEEP_END: process.env.GOLEM_SLEEP_END !== undefined ? Number(cleanEnv(process.env.GOLEM_SLEEP_END)) : 7 // 預設早上 7 點
 };
 
 // 驗證關鍵 Token
@@ -133,6 +137,10 @@ const reloadConfig = () => {
     CONFIG.QMD_PATH = cleanEnv(process.env.GOLEM_QMD_PATH || 'qmd', true);
     CONFIG.TZ = cleanEnv(process.env.TZ) || 'Asia/Taipei';
     CONFIG.INTERVENTION_LEVEL = cleanEnv(process.env.GOLEM_INTERVENTION_LEVEL) || 'CONSERVATIVE';
+    CONFIG.AWAKE_INTERVAL_MIN = Number(cleanEnv(process.env.GOLEM_AWAKE_INTERVAL_MIN)) || 2;
+    CONFIG.AWAKE_INTERVAL_MAX = Number(cleanEnv(process.env.GOLEM_AWAKE_INTERVAL_MAX)) || 5;
+    CONFIG.SLEEP_START = process.env.GOLEM_SLEEP_START !== undefined ? Number(cleanEnv(process.env.GOLEM_SLEEP_START)) : 1;
+    CONFIG.SLEEP_END = process.env.GOLEM_SLEEP_END !== undefined ? Number(cleanEnv(process.env.GOLEM_SLEEP_END)) : 7;
 
     // 重新載入 GOLEMS_CONFIG
     if (freshEnv.GOLEM_MODE === 'SINGLE') {
