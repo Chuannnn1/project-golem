@@ -17,7 +17,14 @@ class SecurityManager {
         }
 
         const baseCmd = safeCmd.split(/\s+/)[0];
-        if (this.SAFE_COMMANDS.includes(baseCmd)) return { level: 'SAFE' };
+
+        // ✨ [v9.1] 讀取使用者設定的白名單 (環境變數)
+        const userWhitelist = (process.env.COMMAND_WHITELIST || "")
+            .split(',')
+            .map(cmd => cmd.trim())
+            .filter(cmd => cmd.length > 0);
+
+        if (this.SAFE_COMMANDS.includes(baseCmd) || userWhitelist.includes(baseCmd)) return { level: 'SAFE' };
         const dangerousOps = ['rm', 'mv', 'chmod', 'chown', 'sudo', 'su', 'reboot', 'shutdown', 'npm uninstall', 'Remove-Item', 'Stop-Computer'];
         if (dangerousOps.includes(baseCmd)) return { level: 'DANGER', reason: '高風險操作' };
         return { level: 'WARNING', reason: '需確認' };

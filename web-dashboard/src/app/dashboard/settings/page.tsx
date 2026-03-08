@@ -540,6 +540,14 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <SettingField
+                                label="指令白名單 (Whitelist)"
+                                keyName="COMMAND_WHITELIST"
+                                placeholder="ls, pwd, echo"
+                                desc="以半形逗號分隔。在此名單內的指令不會跳出確認框。"
+                                value={config.env.COMMAND_WHITELIST || ""}
+                                onChange={(val) => handleChangeEnv("COMMAND_WHITELIST", val)}
+                            />
+                            <SettingField
                                 label="記憶引擎模式"
                                 keyName="GOLEM_MEMORY_MODE"
                                 placeholder="browser"
@@ -621,7 +629,7 @@ export default function SettingsPage() {
                                     'GOLEM_MODE', 'GOLEM_MEMORY_MODE', 'GITHUB_REPO',
                                     'MOLTBOOK_API_KEY', 'MOLTBOOK_AGENT_NAME',
                                     'GOLEM_AWAKE_INTERVAL_MIN', 'GOLEM_AWAKE_INTERVAL_MAX',
-                                    'GOLEM_SLEEP_START', 'GOLEM_SLEEP_END'
+                                    'GOLEM_SLEEP_START', 'GOLEM_SLEEP_END', 'COMMAND_WHITELIST'
                                 ].includes(k))
                                 .map(key => (
                                     <div key={key}>
