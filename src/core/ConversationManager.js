@@ -40,6 +40,66 @@ class ConversationManager {
     }
 
     _commitDirectly(ctx, text, isPriority) {
+        // ✨ [v9.1 插隊系統：大腦層擴充]
+        // 如果不是特急件 (isPriority=false)，且隊列中已有任務 (長度 >= 1)，則觸發詢問
+        if (!isPriority && this.queue.length >= 1) {
+            const approvalId = uuidv4();
+
+            // 將對話任務暫存在 Controller 的 pendingTasks
+            this.controller.pendingTasks.set(approvalId, {
+                type: 'DIALOGUE_QUEUE_APPROVAL',
+                ctx,
+                text,
+                timestamp: Date.now()
+            });
+
+            // 回傳 Telegram 行內鍵盤選項
+            ctx.reply(
+                `🚨 **大腦思考中**\n目前有 \`${this.queue.length}\` 則訊息正在等待處理，且 Golem 正在專心做其他事。\n\n請問這則新訊息是否要 **急件插隊**？`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '⬆️ 急件插隊', callback_data: `DIAPRIORITY_${approvalId}` },
+                            { text: '⬇️ 正常排隊', callback_data: `DIAAPPEND_${approvalId}` }
+                        ]]
+                    }
+                }
+            ).then(msg => {
+                // 30 秒自動 Timeout 防呆 (預設為 Append)
+                setTimeout(async () => {
+                    const task = this.controller.pendingTasks.get(approvalId);
+                    if (task && task.type === 'DIALOGUE_QUEUE_APPROVAL') {
+                        this.controller.pendingTasks.delete(approvalId);
+                        console.log(`⏳ [Dialogue Queue] 互動超時，任務 ${approvalId} 自動排入隊尾。`);
+
+                        try {
+                            if (ctx.platform === 'telegram' && msg && msg.message_id) {
+                                await ctx.instance.editMessageText(
+                                    `🚨 **大腦思考中**\n目前對話佇列繁忙。\n\n*(預設) 已將此訊息自動排入對話隊尾。*`,
+                                    {
+                                        chat_id: ctx.chatId,
+                                        message_id: msg.message_id,
+                                        parse_mode: 'Markdown',
+                                        reply_markup: { inline_keyboard: [] }
+                                    }
+                                ).catch(() => { });
+                            }
+                        } catch (e) { console.warn("無法更新 Dialogue Timeout 訊息:", e.message); }
+
+                        // 超時後強制以一般優先級入隊
+                        this._actualCommit(ctx, text, false);
+                    }
+                }, 30000);
+            });
+            return;
+        }
+
+        // 正常入隊
+        this._actualCommit(ctx, text, isPriority);
+    }
+
+    _actualCommit(ctx, text, isPriority) {
         console.log(`📦 [Dialogue Queue] 加入隊列 (Direct) ${isPriority ? '[💥VIP 插隊中]' : ''} - 準備交由大腦處理`);
         if (isPriority) {
             this.queue.unshift({ ctx, text }); // Priority goes to the front of the line

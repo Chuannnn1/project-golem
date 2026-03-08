@@ -90,7 +90,63 @@ class CommandHandler {
         };
 
         if (actionQueue) {
-            await actionQueue.enqueue(ctx, runLogic);
+            // ✨ [v9.1] 插隊系統：如果 Action Queue 正在忙碌，則攔截任務並詢問是否優先
+            if (actionQueue.isProcessing || actionQueue.queue.length >= 1) {
+                const { v4: uuidv4 } = require('uuid');
+                const queueApprovalId = uuidv4();
+
+                controller.pendingTasks.set(queueApprovalId, {
+                    type: 'QUEUE_APPROVAL',
+                    ctx,
+                    runLogic,
+                    timestamp: Date.now()
+                });
+
+                const msg = await ctx.reply(
+                    `🚨 **產線壅塞中**\n目前系統正在執行其他行動任務 (等待佇列: \`${actionQueue.queue.length}\`)。\n\n請問是否要將此新任務 **插隊 (優先執行)**？`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [[
+                                { text: '⬆️ 插隊優先', callback_data: `PRIORITY_${queueApprovalId}` },
+                                { text: '⬇️ 正常排隊', callback_data: `APPEND_${queueApprovalId}` }
+                            ]]
+                        }
+                    }
+                );
+
+                // 30 秒後自動排入隊尾
+                setTimeout(async () => {
+                    const task = controller.pendingTasks.get(queueApprovalId);
+                    if (task && task.type === 'QUEUE_APPROVAL') {
+                        controller.pendingTasks.delete(queueApprovalId);
+                        console.log(`⏳ [CommandHandler] 任務 ${queueApprovalId} 等待逾時，自動正常排入隊尾。`);
+
+                        try {
+                            // 嘗試移除按鈕並更新文字
+                            if (ctx.platform === 'telegram' && msg && msg.message_id) {
+                                await ctx.instance.editMessageText(
+                                    `🚨 **產線壅塞中**\n目前行動佇列繁忙。\n\n*(預設) 已將此任務自動排入隊尾。*`,
+                                    {
+                                        chat_id: ctx.chatId,
+                                        message_id: msg.message_id,
+                                        parse_mode: 'Markdown',
+                                        reply_markup: { inline_keyboard: [] }
+                                    }
+                                ).catch(() => { });
+                            }
+                        } catch (e) {
+                            console.warn("無法更新 Timeout 訊息:", e.message);
+                        }
+
+                        actionQueue.enqueue(ctx, runLogic, { isPriority: false });
+                    }
+                }, 30000);
+
+            } else {
+                // 如果佇列空閒，直接加入
+                await actionQueue.enqueue(ctx, runLogic, { isPriority: false });
+            }
         } else {
             // 退火單產線執行
             await runLogic();
