@@ -231,13 +231,14 @@ export default function DirectChatPage() {
                                     )}
                                     <div
                                         className={cn(
-                                            "p-3 rounded-lg text-sm whitespace-pre-wrap break-words inline-block",
-                                            msg.isThinking ? "animate-pulse bg-gray-900/50 border-gray-800 text-gray-500 italic" :
+                                            "p-3 rounded-2xl text-sm whitespace-pre-wrap break-words inline-block shadow-sm transition-all duration-200",
+                                            msg.isThinking
+                                                ? "animate-pulse bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-gray-700/50 text-gray-500 italic backdrop-blur-sm" :
                                                 msg.isSystem
-                                                    ? "bg-gray-900 border-gray-800 rounded-tl-none text-gray-300"
+                                                    ? "bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-tl-none text-gray-300 shadow-indigo-500/5"
                                                     : isUser
-                                                        ? "bg-blue-950/30 text-blue-100 border border-blue-900/50 rounded-tr-none"
-                                                        : "bg-cyan-950/30 text-cyan-100 border border-cyan-900/50 rounded-tl-none"
+                                                        ? "bg-gradient-to-br from-blue-600/20 to-indigo-600/20 text-blue-100 border border-blue-500/30 rounded-tr-none shadow-blue-500/10"
+                                                        : "bg-gradient-to-br from-cyan-600/20 to-teal-600/20 text-cyan-100 border border-cyan-500/30 rounded-tl-none shadow-cyan-500/10"
                                         )}
                                     >
                                         {msg.isThinking ? "思考中..." : (msg.isSystem && !msg.isHistory ?
@@ -245,16 +246,28 @@ export default function DirectChatPage() {
                                             : msg.content.replace(/\n{2,}/g, '\n\n').trim())}
                                     </div>
                                     {msg.actionData && Array.isArray(msg.actionData) && (!msg.isSystem || msg.isHistory || completedTypingMsgs.has(msg.id)) && (
-                                        <div className="flex space-x-2 mt-2">
-                                            {msg.actionData.map((btn: any, idx: number) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => handleAction(btn.callback_data)}
-                                                    className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md text-white transition-colors"
-                                                >
-                                                    {btn.text}
-                                                </button>
-                                            ))}
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {msg.actionData.map((btn: any, idx: number) => {
+                                                const isApprove = btn.text.includes('批准') || btn.text.includes('Approve');
+                                                const isDeny = btn.text.includes('拒絕') || btn.text.includes('Reject') || btn.text.includes('Deny');
+
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => handleAction(btn.callback_data)}
+                                                        className={cn(
+                                                            "px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 border flex items-center gap-2 transform active:scale-95 shadow-lg",
+                                                            isApprove
+                                                                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                                                                : isDeny
+                                                                    ? "bg-rose-500/10 border-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-white"
+                                                                    : "bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white"
+                                                        )}
+                                                    >
+                                                        {btn.text}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

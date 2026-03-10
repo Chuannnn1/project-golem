@@ -374,15 +374,9 @@ class WebServer {
                     }
                 }
 
-                if (typeof index.handleUnifiedCallback === 'function') {
-                    index.handleUnifiedCallback(mockContext, callback_data, golemId).catch(console.error);
-                } else if (global.handleUnifiedCallback) {
-                    global.handleUnifiedCallback(mockContext, callback_data, golemId).catch(console.error);
-                } else {
-                    console.error('[WebServer] handleUnifiedCallback not found in index.js exports or global');
-                }
+                // ── [v9.1.11] 調整順序：優先顯示使用者動作，再執行後端邏輯 ──
 
-                // 回顯操作給前端 (改用 [WebUser] 前綴，讓前端正確歸類為使用者消息)
+                // 1. 回顯操作給前端 (改用 [WebUser] 前綴，讓前端正確歸類為使用者消息)
                 this.broadcastLog({
                     time: new Date().toLocaleTimeString(),
                     msg: `[WebUser] ${translatedMsg}`,
@@ -391,7 +385,7 @@ class WebServer {
                     golemId
                 });
 
-                // ── [v9.1.10] 針對批准操作也發送「思考中」信號 (因為指令執行需要時間) ──
+                // 2. 立即發送「思考中」信號
                 this.broadcastLog({
                     time: new Date().toLocaleTimeString(),
                     msg: `[${golemId}] ...`,
@@ -399,6 +393,17 @@ class WebServer {
                     raw: '...',
                     golemId
                 });
+
+                // 3. 微小延遲確保前端 Socket 順序，接著才觸發後端執行 (避免 Golem 回覆超車)
+                setTimeout(() => {
+                    if (typeof index.handleUnifiedCallback === 'function') {
+                        index.handleUnifiedCallback(mockContext, callback_data, golemId).catch(console.error);
+                    } else if (global.handleUnifiedCallback) {
+                        global.handleUnifiedCallback(mockContext, callback_data, golemId).catch(console.error);
+                    } else {
+                        console.error('[WebServer] handleUnifiedCallback not found in index.js exports or global');
+                    }
+                }, 100);
 
                 return res.json({ success: true });
             } catch (e) {
