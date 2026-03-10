@@ -178,6 +178,7 @@ function getOrCreateGolem(golemId) {
                 console.log("🔄 [系統] 啟動記憶轉生程序！正在開啟新對話...");
                 for (const [id, instance] of activeGolems.entries()) {
                     if (instance.brain.page) {
+                        console.log(`🚀 [System] Browser Session Started (Golem: ${id})`);
                         await instance.brain.page.goto('https://gemini.google.com/app', { waitUntil: 'networkidle2' });
                     }
                     const wakeUpPrompt = `【系統重啟初始化：記憶轉生】\n請遵守你的核心設定(Project Golem [${id}])。你剛進行了會話重置以釋放記憶體。\n以下是你上一輪對話留下的【記憶摘要】：\n${summary}\n\n請根據上述摘要，向使用者打招呼，並嚴格包含以下這段話（或類似語氣）：\n「🔄 對話視窗已成功重啟，並載入了剛剛的重點記憶！不過老實說，重啟過程可能會讓我忘記一些瑣碎的小細節，如果接下來我有漏掉什麼，請隨時提醒我喔！」`;

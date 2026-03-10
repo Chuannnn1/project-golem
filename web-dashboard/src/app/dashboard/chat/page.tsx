@@ -14,6 +14,7 @@ interface ChatMessage {
     timestamp: string;
     isSystem: boolean;
     actionData?: any;
+    isHistory?: boolean;
 }
 
 export default function DirectChatPage() {
@@ -65,6 +66,49 @@ export default function DirectChatPage() {
             socket.off("log");
         };
     }, []);
+
+    // ── [v9.1.9] Fetch Chat History on mount or active Golem change ──
+    useEffect(() => {
+        if (!activeGolem) return;
+
+        let isMounted = true;
+        const fetchHistory = async () => {
+            try {
+                const res = await fetch(`/api/chat/history?golemId=${activeGolem}`);
+                const data = await res.json();
+                if (data.success && data.history && isMounted) {
+                    const parsedHistory = data.history.map((h: any) => {
+                        let rawMsg = h.msg;
+                        if (rawMsg.startsWith('[MultiAgent]')) rawMsg = rawMsg.replace('[MultiAgent]', '').trim();
+                        let sender = "System";
+                        let content = rawMsg;
+                        const match = rawMsg.match(/\[(.*?)\]\s*([\s\S]*)/);
+                        if (match) {
+                            sender = match[1];
+                            content = match[2] || " ";
+                        }
+                        return {
+                            id: h.time + Math.random().toString(),
+                            sender,
+                            content,
+                            timestamp: h.time,
+                            isSystem: !(sender === 'User' || sender === 'WebUser'),
+                            actionData: h.actionData,
+                            isHistory: true
+                        };
+                    });
+
+                    setMessages(parsedHistory);
+                    setCompletedTypingMsgs(new Set(parsedHistory.map((m: any) => m.id)));
+                }
+            } catch (err) {
+                console.error("Failed to fetch chat history:", err);
+            }
+        };
+        fetchHistory();
+
+        return () => { isMounted = false; };
+    }, [activeGolem]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -185,9 +229,11 @@ export default function DirectChatPage() {
                                                     : "bg-cyan-950/30 text-cyan-100 border border-cyan-900/50 rounded-tl-none"
                                         )}
                                     >
-                                        {msg.isSystem ? <Typewriter content={msg.content.replace(/\n{2,}/g, '\n\n').trim()} onComplete={() => handleTypingComplete(msg.id)} /> : msg.content.replace(/\n{2,}/g, '\n\n').trim()}
+                                        {msg.isSystem && !msg.isHistory ?
+                                            <Typewriter content={msg.content.replace(/\n{2,}/g, '\n\n').trim()} onComplete={() => handleTypingComplete(msg.id)} />
+                                            : msg.content.replace(/\n{2,}/g, '\n\n').trim()}
                                     </div>
-                                    {msg.actionData && Array.isArray(msg.actionData) && (!msg.isSystem || completedTypingMsgs.has(msg.id)) && (
+                                    {msg.actionData && Array.isArray(msg.actionData) && (!msg.isSystem || msg.isHistory || completedTypingMsgs.has(msg.id)) && (
                                         <div className="flex space-x-2 mt-2">
                                             {msg.actionData.map((btn: any, idx: number) => (
                                                 <button

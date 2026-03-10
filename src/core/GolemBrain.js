@@ -76,6 +76,7 @@ class GolemBrain {
         if (!this.page) {
             const pages = await this.browser.pages();
             this.page = pages.length > 0 ? pages[0] : await this.browser.newPage();
+            console.log(`🚀 [System] Browser Session Started (Golem: ${this.golemId})`);
             await this.page.goto(URLS.GEMINI_APP, { waitUntil: 'networkidle2' });
             isNewSession = true;
         }
@@ -357,6 +358,7 @@ class GolemBrain {
         // 3. 重新開啟 Gemini 視窗 (New Chat) 後再注入
         console.log(`🔄 [Brain][${this.golemId}] 正在開啟新的 Gemini 對話視窗...`);
         const { URLS } = require('./constants');
+        console.log(`🚀 [System] Browser Session Started (Golem: ${this.golemId})`);
         await this.page.goto(URLS.GEMINI_APP, { waitUntil: 'networkidle2' });
 
         await this._injectSystemPrompt(true);

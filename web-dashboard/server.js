@@ -72,6 +72,7 @@ class WebServer {
 
         this.init();
         this.logBuffer = []; // Store last 200 logs
+        this.chatHistory = new Map(); // Store chat history per golem
     }
 
     /**
@@ -267,7 +268,8 @@ class WebServer {
                             msg: `[${golemId}] ${text}`,
                             type: payloadType,
                             raw: text,
-                            actionData
+                            actionData,
+                            golemId
                         });
                     },
                     sendTyping: async () => { },
@@ -280,7 +282,8 @@ class WebServer {
                     time: new Date().toLocaleTimeString(),
                     msg: `[User] ${message}`,
                     type: 'agent',
-                    raw: `[User] ${message}`
+                    raw: `[User] ${message}`,
+                    golemId
                 });
 
                 // 將訊息推進 Golem
@@ -375,12 +378,27 @@ class WebServer {
                     time: new Date().toLocaleTimeString(),
                     msg: `[WebUser] ${translatedMsg}`,
                     type: displayType,
-                    raw: `[User] ${translatedMsg}`
+                    raw: `[User] ${translatedMsg}`,
+                    golemId
                 });
 
                 return res.json({ success: true });
             } catch (e) {
                 console.error('Failed to send callback query:', e);
+                return res.status(500).json({ error: e.message });
+            }
+        });
+
+        // Chat History API
+        this.app.get('/api/chat/history', (req, res) => {
+            try {
+                const { golemId } = req.query;
+                if (!golemId) return res.status(400).json({ error: 'golemId required' });
+
+                const history = this.chatHistory ? (this.chatHistory.get(golemId) || []) : [];
+                return res.json({ success: true, history });
+            } catch (e) {
+                console.error('Failed to fetch chat history:', e);
                 return res.status(500).json({ error: e.message });
             }
         });
@@ -1616,6 +1634,40 @@ class WebServer {
         this.logBuffer.push(data);
         if (this.logBuffer.length > 200) {
             this.logBuffer.shift();
+        }
+
+        // ── [v9.1.9] Chat History Tracking ──
+        if (data && data.msg) {
+            // Detect Browser Session Restart to clear history
+            const restartMatch = data.msg.match(/Browser Session Started \(Golem: (.*?)\)/);
+            if (restartMatch) {
+                const gId = restartMatch[1];
+                if (!this.chatHistory) this.chatHistory = new Map();
+                this.chatHistory.set(gId, []);
+                console.log(`🧹 [WebServer] Cleared chat history for Golem [${gId}] due to browser session start.`);
+            }
+
+            // Filter for chat-like UI messages
+            if (data.type === 'agent' || data.type === 'approval' || data.msg.includes('[MultiAgent]') || data.msg.includes('[User]') || data.msg.includes('[WebUser]')) {
+                let gId = data.golemId;
+                if (!gId) {
+                    const srcMatch = data.msg.match(/^\[(.*?)\]/);
+                    if (srcMatch && !['User', 'System', 'WebUser', 'User Action', 'MultiAgent'].includes(srcMatch[1])) {
+                        gId = srcMatch[1];
+                    }
+                }
+
+                if (gId && gId !== 'System' && gId !== 'global') {
+                    if (!this.chatHistory) this.chatHistory = new Map();
+                    if (!this.chatHistory.has(gId)) this.chatHistory.set(gId, []);
+                    this.chatHistory.get(gId).push(data);
+
+                    // Limit history to last 500 messages per Golem
+                    if (this.chatHistory.get(gId).length > 500) {
+                        this.chatHistory.get(gId).shift();
+                    }
+                }
+            }
         }
 
         if (this.io) {
