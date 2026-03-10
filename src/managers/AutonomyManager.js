@@ -60,7 +60,7 @@ class AutonomyManager {
                     .filter(f => f.startsWith(date) && f.length === 14 && f.endsWith('.log'));
 
                 if (files.length >= threshold) {
-                    console.log(`📦 [Autonomy] 偵測到 ${date} (${label}) 有 ${files.length} 個日誌待壓縮，啟動自動化程序...`);
+                    console.log(`📦 [Autonomy] 門檻達成：${date} (${label}) 已累積 ${files.length} 個時段日誌，啟動自動歸檔程序...`);
 
                     await this.sendNotification(`📦 **【自動化日誌維護】**\n偵測到${label} (${date}) 已累積達 ${files.length} 小時對話，目前將進行記憶彙整，請稍等...`);
 
@@ -71,6 +71,8 @@ class AutonomyManager {
                     });
 
                     await this.sendNotification(`✅ **【自動化日誌維護】**\n${date} (${label}) 歸檔完成！\n${result}`);
+                } else {
+                    console.log(`ℹ️ [Autonomy] ${date} (${label}) 目前累積 ${files.length}/${threshold} 份日誌，未達壓縮門檻。`);
                 }
             }
         } catch (e) {

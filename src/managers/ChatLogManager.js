@@ -234,10 +234,13 @@ class ChatLogManager {
 
         if (!combinedContent) return;
 
-        console.log(`🤖 [LogManager] 檔案數 (${files.length}) 達標，請求 Gemini 進行每日摘要壓縮...`);
+        const totalChars = combinedContent.length;
+        const totalLines = combinedContent.split('\n').length - 1;
+
+        console.log(`🤖 [LogManager] 檔案數(${files.length}) 達標，待壓縮對話計 ${totalLines} 條，總字數計 ${totalChars}。請求 Gemini 進行每日摘要壓縮...`);
         const prompt = `【系統指令：對話回顧與壓縮】\n以下是 ${dateString} 多個時段內的對話記錄。請將這些內容整理成約 ${MEMORY_TIERS.DAILY_SUMMARY_CHARS} 字的精煉摘要，保留所有重要的決策、任務進度、技術細節與核心重點，並以條列式優雅地呈現。\n\n對話內容：\n${combinedContent}`;
 
-        await this._compressAndSave(prompt, summaryPath, dateString, 'daily_summary', files, this.dirs.hourly, brain);
+        await this._compressAndSave(prompt, summaryPath, dateString, 'daily_summary', files, this.dirs.hourly, brain, totalChars);
     }
 
     // ============================================================
@@ -277,9 +280,13 @@ class ChatLogManager {
 
         if (!combinedContent) return;
 
+        const totalChars = combinedContent.length;
+        const totalLines = combinedContent.split('\n').filter(l => l.includes('--- [')).length;
+
+        console.log(`🤖 [LogManager] 每日摘要數(${files.length}) 達標，待壓縮內容計 ${totalChars} 字。請求 Gemini 進行月度精華壓縮...`);
         const prompt = `【系統指令：月度記憶壓縮】\n以下是 ${monthString} 一整個月的每日對話摘要，共 ${files.length} 天。請將這些內容整合為約 ${MEMORY_TIERS.MONTHLY_SUMMARY_CHARS} 字的月度精華報告。\n\n重點保留：\n- 該月的主要里程碑與重大決策\n- 技術進展與架構變更\n- 使用者偏好與行為模式的變化\n- 尚未完成的待辦事項\n\n每日摘要：\n${combinedContent}`;
 
-        await this._compressAndSave(prompt, outputPath, monthString, 'monthly_summary', files, this.dirs.daily, brain);
+        await this._compressAndSave(prompt, outputPath, monthString, 'monthly_summary', files, this.dirs.daily, brain, totalChars);
     }
 
     // ============================================================
@@ -388,12 +395,17 @@ class ChatLogManager {
      * @param {Array|null} sourceFiles - 壓縮成功後要刪除的源檔案
      * @param {string|null} sourceDir - 源檔案所在目錄
      * @param {Object} brain - GolemBrain 實例
+     * @param {number} originalSize - 原始內容字數 (用於計算壓縮率)
      */
-    async _compressAndSave(prompt, outputPath, label, type, sourceFiles, sourceDir, brain) {
+    async _compressAndSave(prompt, outputPath, label, type, sourceFiles, sourceDir, brain, originalSize = 0) {
+        const startTime = Date.now();
         try {
             const rawResponse = await brain.sendMessage(prompt, false);
+            const duration = ((Date.now() - startTime) / 1000).toFixed(1);
             const parsed = ResponseParser.parse(rawResponse);
             const summaryText = parsed.reply || "";
+            const summarySize = summaryText.length;
+            const ratio = originalSize > 0 ? ((1 - (summarySize / originalSize)) * 100).toFixed(1) : 0;
 
             if (!summaryText || summaryText.trim().length === 0) {
                 console.error(`⚠️ [LogManager] ${label} Gemini 回傳摘要為空，取消歸檔以保護原始數據。`);
@@ -419,14 +431,15 @@ class ChatLogManager {
 
             summaries.push(summaryEntry);
             fs.writeFileSync(outputPath, JSON.stringify(summaries, null, 2));
-            console.log(`✅ [LogManager] ${label} ${type} 已產出：${path.relative(this.logDir, outputPath)}`);
+            console.log(`✅ [LogManager] ${label} ${type} 產出成功！(耗時: ${duration}s, 原始: ${originalSize}字 -> 摘要: ${summarySize}字, 壓縮率: ${ratio}%)`);
+            console.log(`📂 相對路徑: ${path.relative(this.logDir, outputPath)}`);
 
             // 壓縮成功後，刪除源檔案 (若提供)
             if (sourceFiles && sourceDir) {
                 sourceFiles.forEach(file => {
                     try { fs.unlinkSync(path.join(sourceDir, file)); } catch (e) { }
                 });
-                console.log(`🗑️ [LogManager] 已清理 ${sourceFiles.length} 個源檔案。`);
+                console.log(`🗑️ [LogManager] 歸檔完成，已從 Tier 0 清理 ${sourceFiles.length} 個源檔案。`);
             }
 
         } catch (e) {
