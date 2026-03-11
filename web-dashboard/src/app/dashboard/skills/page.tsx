@@ -198,6 +198,40 @@ function SkillEditorDialog({
     );
 }
 
+const MARKET_CATEGORIES = [
+    { id: 'all', name: '全部類別' },
+    { id: 'ai-and-llms', name: 'AI & LLMs' },
+    { id: 'apple-apps-and-services', name: 'Apple Apps' },
+    { id: 'browser-and-automation', name: 'Browser Automation' },
+    { id: 'calendar-and-scheduling', name: 'Calendar' },
+    { id: 'clawdbot-tools', name: 'Clawdbot Tools' },
+    { id: 'cli-utilities', name: 'CLI Utilities' },
+    { id: 'coding-agents-and-ides', name: 'Coding Agents' },
+    { id: 'communication', name: 'Communication' },
+    { id: 'data-and-analytics', name: 'Data Analytics' },
+    { id: 'devops-and-cloud', name: 'DevOps & Cloud' },
+    { id: 'finance', name: 'Finance' },
+    { id: 'gaming', name: 'Gaming' },
+    { id: 'git-and-github', name: 'Git & GitHub' },
+    { id: 'health-and-fitness', name: 'Health & Fitness' },
+    { id: 'image-and-video-generation', name: 'Image & Video' },
+    { id: 'ios-and-macos-development', name: 'iOS/macOS Dev' },
+    { id: 'marketing-and-sales', name: 'Marketing & Sales' },
+    { id: 'media-and-streaming', name: 'Media' },
+    { id: 'moltbook', name: 'Moltbook' },
+    { id: 'notes-and-pkm', name: 'Notes & PKM' },
+    { id: 'pdf-and-documents', name: 'PDF & Docs' },
+    { id: 'personal-development', name: 'Personal Dev' },
+    { id: 'productivity-and-tasks', name: 'Productivity' },
+    { id: 'search-and-research', name: 'Search & Research' },
+    { id: 'security-and-passwords', name: 'Security' },
+    { id: 'self-hosted-and-automation', name: 'Self-Hosted' },
+    { id: 'shopping-and-e-commerce', name: 'E-commerce' },
+    { id: 'smart-home-and-iot', name: 'Smart Home & IoT' },
+    { id: 'speech-and-transcription', name: 'Speech' },
+    { id: 'transportation', name: 'Transportation' },
+    { id: 'web-and-frontend-development', name: 'Web Dev' }
+];
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function SkillsPage() {
@@ -215,6 +249,7 @@ export default function SkillsPage() {
     const [marketPage, setMarketPage] = useState(1);
     const [marketSearchText, setMarketSearchText] = useState("");
     const [marketSearchQuery, setMarketSearchQuery] = useState("");
+    const [marketCategory, setMarketCategory] = useState("all");
     const [isMarketLoading, setIsMarketLoading] = useState(false);
     const [installingId, setInstallingId] = useState<string | null>(null);
 
@@ -245,14 +280,14 @@ export default function SkillsPage() {
             .catch((err) => console.error(err));
     }, [selectedSkill]);
 
-    const loadMarketplace = useCallback(async (page = 1, search = marketSearchQuery) => {
+    const loadMarketplace = useCallback(async (page = 1, search = marketSearchQuery, category = marketCategory) => {
         setIsMarketLoading(true);
         try {
             const params = new URLSearchParams({
                 page: page.toString(),
                 limit: "20",
                 search,
-                category: "all"
+                category
             });
             const res = await fetch(`/api/skills/marketplace?${params.toString()}`);
             const data = await res.json();
@@ -267,23 +302,28 @@ export default function SkillsPage() {
         } finally {
             setIsMarketLoading(false);
         }
-    }, [marketSearchQuery, selectedMarketSkill]);
+    }, [marketSearchQuery, marketCategory, selectedMarketSkill]);
 
     useEffect(() => {
         loadSkills();
-        loadMarketplace(1);
+        loadMarketplace(1, "", "all");
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Re-fetch marketplace when page or search query changes
     useEffect(() => {
-        loadMarketplace(marketPage, marketSearchQuery);
-    }, [marketPage, marketSearchQuery]);
+        loadMarketplace(marketPage, marketSearchQuery, marketCategory);
+    }, [marketPage, marketSearchQuery, marketCategory]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setMarketPage(1);
         setMarketSearchQuery(marketSearchText);
+    };
+
+    const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setMarketCategory(e.target.value);
+        setMarketPage(1);
     };
 
     const toggleSkill = async (id: string, enabled: boolean) => {
@@ -387,8 +427,8 @@ export default function SkillsPage() {
                             <button
                                 onClick={() => setActiveTab("installed")}
                                 className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-all ${activeTab === "installed"
-                                        ? "bg-gray-800 text-white shadow-sm"
-                                        : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                                    ? "bg-gray-800 text-white shadow-sm"
+                                    : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                                     }`}
                             >
                                 <BookOpen className="w-4 h-4" />
@@ -397,8 +437,8 @@ export default function SkillsPage() {
                             <button
                                 onClick={() => setActiveTab("marketplace")}
                                 className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-all ${activeTab === "marketplace"
-                                        ? "bg-gray-800 text-cyan-400 shadow-sm"
-                                        : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                                    ? "bg-gray-800 text-cyan-400 shadow-sm"
+                                    : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                                     }`}
                             >
                                 <Store className="w-4 h-4" />
@@ -649,7 +689,7 @@ export default function SkillsPage() {
                                 </>
                             ) : (
                                 <>
-                                    <div className="p-4 border-b border-gray-800/80 bg-gray-900/50 backdrop-blur-sm shrink-0">
+                                    <div className="p-4 border-b border-gray-800/80 bg-gray-900/50 backdrop-blur-sm shrink-0 flex flex-col gap-3">
                                         <form onSubmit={handleSearchSubmit} className="relative w-full">
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                                             <input
@@ -660,6 +700,20 @@ export default function SkillsPage() {
                                                 className="w-full bg-gray-950/60 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-gray-600"
                                             />
                                         </form>
+                                        <div className="relative w-full">
+                                            <select
+                                                value={marketCategory}
+                                                onChange={handleCategoryChange}
+                                                className="w-full appearance-none bg-gray-950/60 border border-gray-800 rounded-lg pl-3 pr-8 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all cursor-pointer"
+                                            >
+                                                {MARKET_CATEGORIES.map(cat => (
+                                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                <ChevronRight className="w-4 h-4 text-gray-500 rotate-90" />
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-2 space-y-1 scroll-smooth">
                                         {isMarketLoading ? (
