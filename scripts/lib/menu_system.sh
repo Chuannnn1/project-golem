@@ -3,41 +3,84 @@
 show_header() {
     check_status
     clear; echo ""
-    box_top
-    box_line_colored "  ${BOLD}${CYAN}🤖 Project Golem v${GOLEM_VERSION}${NC} ${DIM}(Titan Chronos)${NC}              "
-    box_sep
-    box_line_colored "  ${BOLD}📊 系統狀態${NC}                                          "
-    box_line_colored "  Node.js: $STATUS_NODE   npm: ${DIM}v$NPM_VER${NC}               "
-    box_line_colored "  Config:  $STATUS_ENV   Mode:      ${BOLD}${CYAN}$CURRENT_GOLEM_MODE${NC}           "
-    box_line_colored "  Docker: $STATUS_DOCKER  Dashboard: $STATUS_DASH            "
-    box_bottom; echo ""
+    box_header_dashboard
+    echo -e "  ${DIM}NODE_NAME: ${NC}${BOLD}${WHITE}$SYS_NAME${NC} ${DIM}• 核心版本: ${NC}${CYAN}v${GOLEM_VERSION}${NC}"
+    echo ""
 }
 
 show_menu() {
     show_header
-    echo -e "  ${DIM}$(pick_tagline)${NC}"
     echo ""
-    echo -e "  ${BOLD}${YELLOW}⚡ 核心指令${NC}"
-    echo -e "  ${CYAN}───────────────────────────────────────────────${NC}"
+    
+    # 智能推薦邏輯
+    local default_choice="Start"
+    if [ "$ENV_OK" = false ] || [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+        default_choice="Install"
+    elif [ "$IS_RUNNING" = true ]; then
+        default_choice="Stop"
+    fi
+    SINGLESELECT_DEFAULT="$default_choice"
+
+    # ─── 目錄分區 ───
+    echo -e "  ${YELLOW}⚡${NC}  ${BOLD}${YELLOW}核心操作 (Core Operations)${NC}"
+    echo -e "  ${DIM}┖───────────────────────────────────────────┚${NC}"
+    echo ""
 
     local options=()
-    options+=("Start|🚀 啟動系統 (Start Golem & Dashboard)")
-    options+=("Stop|🛑 停止系統 (Stop All Processes)")
-    options+=("Install|📦 安裝與更新 (Install Deps & Build)")
-    options+=("Init|🧹 完全初始化 (Reset System)")
-    options+=("Quit|🚪 退出")
+    if [ "$IS_RUNNING" = true ]; then
+        options+=("Restart|🔄 重新啟動所有服務 (Restart Stack)")
+        options+=("Stop|🛑 停止執行中的程序 (Shutdown)")
+    else
+        options+=("Start|🚀 啟動系統與控制台 (Power On)")
+    fi
+    
+    options+=("Install|📦 更新依賴與系統建置 (Update / Build)")
+    
+    show_menu_tools # Call the new function for the tools header
+    
+    options+=("Doctor|🏥 深度系統診斷 (Run Diagnostics)")
+    options+=("Clean|🧹 清除依賴 (Clean node_modules)")
+    options+=("Init|🧨 完全初始化系統 (Factory Reset - ${RED}DANGER${NC})")
+    options+=("Quit|🚪 退出介面 (Exit)")
+
+    # Bottom Tip (Placed before prompt to keep it visible)
+    show_system_tip # Call the new function for the system tip
+    echo ""
 
     prompt_singleselect "" "${options[@]}"
     local choice="$SINGLESELECT_RESULT"
 
     case "$choice" in
         "Start")   launch_system ;;
+        "Restart") stop_system false; launch_system ;;
         "Stop")    stop_system; show_menu ;;
         "Install") run_full_install ;;
+        "Doctor")  run_health_check; echo ""; read -r -p "  按 Enter 返回主選單..."; show_menu ;;
+        "Clean")   run_clean_dependencies; show_menu ;;
         "Init")    run_clean_init; show_menu ;;
-        "Quit")    echo -e "  ${GREEN}👋 再見！${NC}"; exit 0 ;;
+        "Quit")    echo -e "  ${GREEN}👋 關閉連線，再見！${NC}"; exit 0 ;;
         *)         show_menu ;;
     esac
+}
+
+show_menu_tools() {
+    echo ""
+    echo -e "  ${CYAN}🛠${NC}  ${BOLD}${CYAN}維護與診斷 (Maintenance & Tools)${NC}"
+    echo -e "  ${DIM}┖───────────────────────────────────────────┚${NC}"
+    echo ""
+}
+
+show_system_tip() {
+    local tips=(
+        "Your personal AI agent swarm, at your service."
+        "Did you know? You can add more Golems in golems.json."
+        "Mainframe stabilized. All systems nominal."
+        "Pro Tip: Use 'Doctor' if you encounter any port conflicts."
+        "Neural links established. Golem core active."
+    )
+    local tip=${tips[$RANDOM % ${#tips[@]}]}
+    echo -e "  ${DIM}💡 提示: $tip${NC}"
+    echo ""
 }
 
 # toggle_dashboard and view_logs are now handled via Web Dashboard
@@ -143,17 +186,12 @@ launch_system() {
 
     if [ "$IsDashEnabled" = true ]; then
         if [ ! -d "$SCRIPT_DIR/web-dashboard/out" ]; then
-            echo -e "  ${YELLOW}⚠️  偵測到 Dashboard 尚未建置 (缺少 out 目錄)${NC}"
-            if confirm_action "是否現在立即自動建置 Dashboard？"; then
-                step_install_dashboard
-                # 重新檢查建置結果
-                if [ ! -d "$SCRIPT_DIR/web-dashboard/out" ]; then
-                    echo -e "  ${RED}❌ 建置失敗，系統可能無法正常顯示網頁介面。${NC}"
-                    sleep 2
-                fi
-            else
-                echo -e "  ${DIM}   提示: 您可以稍後執行完整安裝流程進行建置。${NC}"
-                echo ""
+            echo -e "  ${YELLOW}⚠️  偵測到 Dashboard 尚未建置，正在為您自動建置...${NC}"
+            step_install_dashboard
+            # 重新檢查建置結果
+            if [ ! -d "$SCRIPT_DIR/web-dashboard/out" ]; then
+                echo -e "  ${RED}❌ 自動建置失敗，請檢查網路或執行 ./setup.sh --doctor 查看原因。${NC}"
+                sleep 2
             fi
         else
             echo -e "  ${GREEN}🌐 Web Dashboard → http://localhost:${DASHBOARD_PORT:-3000}${NC}"

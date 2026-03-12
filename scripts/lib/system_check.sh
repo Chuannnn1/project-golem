@@ -66,7 +66,8 @@ check_status() {
         STATUS_NODE="${GREEN}✅ $NODE_VER${NC}"
         NODE_OK=true
     else
-        STATUS_NODE="${RED}❌ $NODE_VER (需 v20 或以上)${NC}"
+        STATUS_NODE="${RED}❌ $NODE_VER${NC}"
+        NODE_OFFLINE=true
         NODE_OK=false
     fi
 
@@ -74,76 +75,76 @@ check_status() {
     if [ -f "$DOT_ENV_PATH" ]; then
         STATUS_ENV="${GREEN}✅ 已設定${NC}"
         ENV_OK=true
-    else
-        STATUS_ENV="${RED}❌ 未找到${NC}"
-        ENV_OK=false
-    fi
-
-    # 執行多 Golem 檢查
-    check_multi_golems
-    if [ "${GOLEMS_ACTIVE_COUNT:-0}" -gt 0 ]; then
-        STATUS_GOLEMS="${GREEN}✅ ${GOLEMS_ACTIVE_COUNT} 個實體${NC}"
-    else
-        STATUS_GOLEMS="${YELLOW}⚠️ 未配置${NC}"
-    fi
-
-    # Web Dashboard [V9.1.5 Updated]
-    IsDashEnabled=false
-    local dash_env; dash_env=$(grep "^ENABLE_WEB_DASHBOARD=" "$DOT_ENV_PATH" 2>/dev/null | cut -d'=' -f2)
-    
-    # 如果變數設為 true，或者變數不存在但目錄存在，則視為啟用
-    if [ "$dash_env" = "true" ] || { [ -z "$dash_env" ] && [ -d "$SCRIPT_DIR/web-dashboard" ]; }; then
-        STATUS_DASH="${GREEN}✅ 啟用${NC}"
-        IsDashEnabled=true
-    else
-        STATUS_DASH="${YELLOW}⏸️  停用${NC}"
-    fi
-
-    # API Keys configured?
-    KEYS_SET=false
-    if [ -f "$DOT_ENV_PATH" ]; then
-        # Use a temporary subshell to source env without polluting main scope
-        # but we actually need some variables like GEMINI_API_KEYS
-        # Sourcing it is fine as long as we are careful
+        # Detect API Keys
+        KEYS_SET=false
         source "$DOT_ENV_PATH" 2>/dev/null || true
         if [ -n "${GEMINI_API_KEYS:-}" ] && [ "$GEMINI_API_KEYS" != "你的Key1,你的Key2,你的Key3" ]; then
             KEYS_SET=true
         fi
+    else
+        STATUS_ENV="${RED}❌ 未找到${NC}"
+        ENV_OK=false
+        KEYS_SET=false
     fi
 
-    # Port 3000 status
-    PORT_3000_STATUS="${DIM}未檢查${NC}"
-    if command -v lsof &>/dev/null; then
-        if lsof -i :3000 &>/dev/null; then
-            PORT_3000_STATUS="${GREEN}● 使用中${NC}"
-        else
-            PORT_3000_STATUS="${DIM}○ 閒置${NC}"
-        fi
+    # Golem Instances
+    check_multi_golems
+    if [ "${GOLEMS_ACTIVE_COUNT:-0}" -gt 0 ]; then
+        STATUS_GOLEMS="${CYAN}${GOLEMS_ACTIVE_COUNT} 個實體${NC}"
+    else
+        STATUS_GOLEMS="${DIM}未配置${NC}"
     fi
 
-    # OS Info
-    OS_INFO="$OSTYPE"
-    ARCH_INFO=$(uname -m 2>/dev/null || echo "unknown")
-    NPM_VER=$(npm -v 2>/dev/null || echo "N/A")
-    DISK_AVAIL=$(df -h "$SCRIPT_DIR" 2>/dev/null | awk 'NR==2{print $4}' || echo "N/A")
+    # Web Dashboard
+    IsDashEnabled=false
+    local dash_env; dash_env=$(grep "^ENABLE_WEB_DASHBOARD=" "$DOT_ENV_PATH" 2>/dev/null | cut -d'=' -f2)
+    if [ "$dash_env" = "true" ] || { [ -z "$dash_env" ] && [ -d "$SCRIPT_DIR/web-dashboard" ]; }; then
+        STATUS_DASH="${GREEN}✅ 啟用${NC}"
+        IsDashEnabled=true
+    else
+        STATUS_DASH="${DIM}⏸️  停用${NC}"
+    fi
 
-    # Docker Status
+    # Running Status (PID Check)
+    IS_RUNNING=false
+    STATUS_RUNNING="${DIM}○ 停止${NC}"
+    local pids; pids=$(pgrep -f 'node.*index\.js\|npm start' 2>/dev/null)
+    if [ -n "$pids" ]; then
+        IS_RUNNING=true
+        STATUS_RUNNING="${GREEN}${BOLD}● 執行中${NC}"
+    fi
+
+    # Hardware & System Info
+    SYS_OS=$(uname -s 2>/dev/null || echo "Unknown")
+    SYS_ARCH=$(uname -m 2>/dev/null || echo "Unknown")
+    SYS_DISK=$(df -h "$SCRIPT_DIR" 2>/dev/null | awk 'NR==2{print $4}' || echo "N/A")
+    SYS_NAME=$(hostname 2>/dev/null || echo "localhost")
+    SYS_MEM=$(node -e "console.log(Math.round(require('os').freemem() / 1024 / 1024 / 1024 * 10) / 10 + 'GB')" 2>/dev/null || echo "N/A")
+    
+    # CPU & Uptime
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        SYS_CPU=$(top -l 1 | grep "CPU usage" | awk '{print $3}' | tr -d '%' || echo "0")
+        SYS_UPTIME=$(uptime | awk '{print $3,$4}' | sed 's/,//' || echo "N/A")
+    else
+        SYS_CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' || echo "0")
+        SYS_UPTIME=$(uptime -p | sed 's/up //' || echo "N/A")
+    fi
+
+    # Local IP detection (macOS/Linux)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        SYS_IP=$(ipconfig getifaddr en0 2>/dev/null || echo "127.0.0.1")
+    else
+        SYS_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+    fi
+
+    # Docker
     if command -v docker &>/dev/null; then
         DOCKER_VER=$(docker --version | awk '{print $3}' | tr -d ',')
         STATUS_DOCKER="${GREEN}✅ $DOCKER_VER${NC}"
         DOCKER_OK=true
     else
-        STATUS_DOCKER="${RED}❌ 未安裝${NC}"
+        STATUS_DOCKER="${DIM}未安裝${NC}"
         DOCKER_OK=false
-    fi
-
-    if docker compose version &>/dev/null; then
-        COMPOSE_VER="Yes"
-        STATUS_COMPOSE="${GREEN}✅ 支援${NC}"
-        COMPOSE_OK=true
-    else
-        STATUS_COMPOSE="${RED}❌ 不支援${NC}"
-        COMPOSE_OK=false
     fi
 }
 
@@ -262,99 +263,85 @@ check_dependencies() {
 run_health_check() {
     echo ""
     box_top
-    box_line_colored "🏥 系統健康檢查 (Pre-Launch Health Check)"
+    box_line_colored "  ${BOLD}${CYAN}🏥 Golem 深度系統診斷 (Deep Diagnostics)${NC}      "
     box_sep
 
     local all_pass=true
+    local fix_suggestions=()
 
-    # 1. Node.js
+    # 1. 環境基礎 (Node.js)
     if [ "$NODE_OK" = true ]; then
-        box_line_colored "  ${GREEN}✔${NC}  Node.js          ${GREEN}$NODE_VER${NC}"
+        box_line_colored "  ${GREEN}●${NC} 核心環境: Node.js ${GREEN}$NODE_VER${NC} (符合需求)"
     else
-        box_line_colored "  ${RED}✖${NC}  Node.js          ${RED}$NODE_VER (需 v20 或以上)${NC}"
+        box_line_colored "  ${RED}●${NC} 核心環境: Node.js ${RED}$NODE_VER${NC} (需要 v20+)"
         all_pass=false
+        fix_suggestions+=("使用 nvm 安裝最新 LTS: ${CYAN}nvm install --lts && nvm use --lts${NC}")
     fi
 
-    # 2. .env exists
-    if [ "$ENV_OK" = true ]; then
-        box_line_colored "  ${GREEN}✔${NC}  環境設定 (.env)  ${GREEN}已找到${NC}"
+    # 2. 檔案權限檢查
+    local perm_ok=true
+    [ ! -x "$SCRIPT_DIR/setup.sh" ] && perm_ok=false
+    if [ "$perm_ok" = true ]; then
+        box_line_colored "  ${GREEN}●${NC} 執行權限: 正常"
     else
-        box_line_colored "  ${RED}✖${NC}  環境設定 (.env)  ${RED}未找到${NC}"
-        all_pass=false
+        box_line_colored "  ${YELLOW}●${NC} 執行權限: 異常 (部分腳本缺少執行權限)"
+        fix_suggestions+=("修復權限: ${CYAN}chmod +x *.sh scripts/lib/*.sh${NC}")
     fi
 
-    # 3. API Keys
-    if [ "$KEYS_SET" = true ]; then
-        box_line_colored "  ${GREEN}✔${NC}  Gemini API Keys  ${GREEN}已設定${NC}"
-    else
-        box_line_colored "  ${YELLOW}ℹ${NC}  Gemini API Keys  ${YELLOW}尚未設定 (可於系統啟動後透過 Dashboard 設定)${NC}"
-    fi
-
-    # 3.5 Golem Config
-    if [ "$GOLEMS_ACTIVE_COUNT" -gt 0 ]; then
-        box_line_colored "  ${GREEN}✔${NC}  Golem 實體配置   ${GREEN}${GOLEMS_ACTIVE_COUNT} 個已偵測${NC}"
-    else
-        box_line_colored "  ${YELLOW}ℹ${NC}  Golem 實體配置   ${YELLOW}未偵測到 (可於系統啟動後透過 Dashboard 新增)${NC}"
-    fi
-
-    # 4. Core files
-    local core_ok=true
-    for file in index.js skills.js package.json dashboard.js; do
-        if [ ! -f "$SCRIPT_DIR/$file" ]; then
-            core_ok=false
-            break
-        fi
-    done
-    if [ "$core_ok" = true ]; then
-        box_line_colored "  ${GREEN}✔${NC}  核心檔案         ${GREEN}完整${NC}"
-    else
-        box_line_colored "  ${RED}✖${NC}  核心檔案         ${RED}不完整${NC}"
-        all_pass=false
-    fi
-
-    # 5. node_modules
-    if [ -d "$SCRIPT_DIR/node_modules" ]; then
-        box_line_colored "  ${GREEN}✔${NC}  依賴套件         ${GREEN}已安裝${NC}"
-    else
-        box_line_colored "  ${RED}✖${NC}  依賴套件         ${RED}未安裝 (請執行安裝)${NC}"
-        all_pass=false
-    fi
-
-    # 6. Dashboard
-    if [ "$IsDashEnabled" = true ]; then
-        if [ -d "$SCRIPT_DIR/web-dashboard/out" ] || [ -d "$SCRIPT_DIR/web-dashboard/node_modules" ]; then
-            box_line_colored "  ${GREEN}✔${NC}  Web Dashboard    ${GREEN}已就緒${NC}"
+    # 3. 通訊埠狀態 (Port 3000)
+    local port_busy=false
+    if command -v lsof &>/dev/null; then
+        if lsof -i :3000 -t &>/dev/null; then
+            port_busy=true
+            local pid=$(lsof -i :3000 -t | head -n 1)
+            box_line_colored "  ${RED}●${NC} 通訊埠 3000: 已被佔用 (PID: $pid)"
+            all_pass=false
+            fix_suggestions+=("關閉佔用程序: ${CYAN}kill -9 $pid${NC} (或更改 .env 中的 PORT)")
         else
-            box_line_colored "  ${YELLOW}△${NC}  Web Dashboard    ${YELLOW}已啟用但未建置${NC}"
+            box_line_colored "  ${GREEN}●${NC} 通訊埠 3000: 閒置 (可供 Dashboard 使用)"
         fi
-    else
-        box_line_colored "  ${DIM}─${NC}  Web Dashboard    ${DIM}已停用${NC}"
     fi
 
-    # 7. Docker
-    if [ "$DOCKER_OK" = true ] && [ "$COMPOSE_OK" = true ]; then
-        box_line_colored "  ${GREEN}✔${NC}  Docker 環境      ${GREEN}已就緒${NC}"
+    # 4. API 連線測試 (Gemini API)
+    if [ "$KEYS_SET" = true ]; then
+        if curl -s --connect-timeout 5 https://generativelanguage.googleapis.com >/dev/null; then
+            box_line_colored "  ${GREEN}●${NC} API 連通性: 正常 (可連接 Google AI 伺服器)"
+        else
+            box_line_colored "  ${RED}●${NC} API 連通性: 失敗 (請檢查網路或代理設定)"
+            fix_suggestions+=("檢查網路連線或系統 Proxy 設定")
+        fi
+    fi
+
+    # 5. 依賴項完整性
+    if [ -d "$SCRIPT_DIR/node_modules" ] && [ -f "$SCRIPT_DIR/package-lock.json" ]; then
+        box_line_colored "  ${GREEN}●${NC} 依賴套件: 已安裝"
     else
-        box_line_colored "  ${DIM}△${NC}  Docker 環境      ${DIM}未完整支援 (僅影響 Docker 模式)${NC}"
+        box_line_colored "  ${RED}●${NC} 依賴套件: 缺失或不完整"
+        all_pass=false
+        fix_suggestions+=("執行重裝: ${CYAN}npm install${NC}")
+    fi
+
+    # 6. Dashboard 建置狀態
+    if [ "$IsDashEnabled" = true ]; then
+        if [ -d "$SCRIPT_DIR/web-dashboard/out" ]; then
+            box_line_colored "  ${GREEN}●${NC} 控制台建置: 已完成"
+        else
+            box_line_colored "  ${YELLOW}●${NC} 控制台建置: 尚未建置"
+            fix_suggestions+=("建置控制台: ${CYAN}./setup.sh --start${NC} (會自動觸發建置)")
+        fi
     fi
 
     box_sep
     if [ "$all_pass" = true ]; then
-        box_line_colored "  ${GREEN}${BOLD}✅ 系統就緒，可以啟動！${NC}                          "
-        box_line_colored "  ${DIM}指令: ${BOLD}./setup.sh --start${NC}                        "
+        box_line_colored "  ${GREEN}${BOLD}✅ 診斷完成：您的系統狀況良好，可以隨時啟動！${NC}"
+        box_line_colored "  ${DIM}指令: ${BOLD}./setup.sh --start${NC}"
     else
-        box_line_colored "  ${RED}${BOLD}⚠️  部分檢查未通過，請參考下方快速修復建議${NC}        "
+        box_line_colored "  ${RED}${BOLD}⚠️  發現潛在問題，建議執行全自動安裝：${NC}"
+        box_line_colored "  ${CYAN}👉 指令: ${BOLD}./setup.sh --install${NC}"
         box_sep
-        box_line_colored "  ${YELLOW}💡 快速修復 (Quick Fix):${NC}                             "
-        [ "$NODE_OK" = false ] && box_line_colored "  • 安裝 Node.js: ${CYAN}./setup.sh${NC} (並選擇安裝項)       "
-        [ "$ENV_OK" = false ]  && box_line_colored "  • 建立環境檔:   ${CYAN}cp .env.example .env${NC}         "
-        if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
-            box_line_colored "  • 安裝套件:     ${CYAN}npm install${NC}                      "
-        fi
-        if [ "$IsDashEnabled" = true ] && [ ! -d "$SCRIPT_DIR/web-dashboard/out" ]; then
-            box_line_colored "  • 建置控制台:   ${CYAN}cd web-dashboard && npm run build${NC} "
-        fi
-        box_line_colored "  • 執行深度診斷: ${CYAN}./setup.sh --doctor${NC}               "
+        for suggestion in "${fix_suggestions[@]}"; do
+            box_line_colored "  💡 $suggestion"
+        done
     fi
     box_bottom
     echo ""

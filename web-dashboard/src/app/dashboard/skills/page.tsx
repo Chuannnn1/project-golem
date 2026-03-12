@@ -301,6 +301,9 @@ export default function SkillsPage() {
     // Success dialog
     const [showInstallSuccess, setShowInstallSuccess] = useState(false);
 
+    // Sync hint
+    const [showSyncHint, setShowSyncHint] = useState(false);
+
     const loadSkills = useCallback(() => {
         fetch("/api/skills")
             .then((res) => res.json())
@@ -380,6 +383,9 @@ export default function SkillsPage() {
                 if (selectedSkill?.id === id) {
                     setSelectedSkill((prev: any) => prev ? { ...prev, isEnabled: enabled } : null);
                 }
+                if (enabled) {
+                    setShowSyncHint(true);
+                }
                 setHasUnsyncedChanges(true);
             }
         } catch (err) {
@@ -420,6 +426,7 @@ export default function SkillsPage() {
                 setTimeout(() => {
                     setShowDone(false);
                     setIsInjecting(false);
+                    setShowSyncHint(false);
                     loadSkills();
                 }, 3000);
             } else {
@@ -828,8 +835,31 @@ export default function SkillsPage() {
                         </div>
                     </div>
                 </div>
-            </div>
 
+                {/* Floating Sync Hint */}
+                {showSyncHint && (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-8 duration-500">
+                        <div className="bg-amber-500/10 border border-amber-500/30 backdrop-blur-xl px-6 py-4 rounded-2xl shadow-[0_10px_40px_-10px_rgba(245,158,11,0.3)] flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col">
+                                <p className="text-sm font-bold text-amber-200">技能已啟用！</p>
+                                <p className="text-xs text-amber-400/80">請記得點擊右上方「注入技能書」按鈕，讓 AI 同步最新的能力。</p>
+                            </div>
+                            <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-8 w-8 p-0 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300"
+                                onClick={() => setShowSyncHint(false)}
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </div>
+            
             {/* Dialogs */}
             <InjectConfirmDialog open={showConfirm} onOpenChange={setShowConfirm} onConfirm={handleInject} isLoading={isInjecting} />
             <InjectDoneDialog open={showDone} onOpenChange={setShowDone} />

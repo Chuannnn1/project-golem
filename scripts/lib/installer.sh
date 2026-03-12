@@ -165,9 +165,10 @@ step_install_dashboard() {
     fi
 
     if ! run_quiet_step "建置 Dashboard (Next.js Build)" npm run build; then
-        ui_error "Dashboard 建置失敗"
-        update_env "ENABLE_WEB_DASHBOARD" "false"
-        log "Dashboard build failed"
+        ui_warn "Dashboard 建置失敗！"
+        ui_warn "這通常是因為環境或依賴問題，您可以之後在選單中單獨嘗試 [4] 建置。"
+        update_env "ENABLE_WEB_DASHBOARD" "true"  # 保持為 true，讓 launch_system 的自動修復邏輯能介入
+        log "Dashboard build failed, kept as enabled for later retry"
     else
         ui_success "Dashboard 建置完成"
         update_env "ENABLE_WEB_DASHBOARD" "true"
@@ -176,6 +177,42 @@ step_install_dashboard() {
     
     popd > /dev/null
     echo ""
+}
+
+# ─── Clean Dependencies (Preserve configs) ───
+run_clean_dependencies() {
+    echo ""
+    box_top
+    box_line_colored "  ${BOLD}${YELLOW}🧹 警告：即將清除所有套件依賴 (node_modules)${NC}        "
+    box_line_colored "  ${DIM}此操作將保留：.env, golems.json, 記憶資料, 日誌${NC}      "
+    box_bottom
+    echo ""
+    if ! confirm_action "確定要清除依賴並重新初始化環境嗎？"; then
+        echo -e "  ${DIM}已取消操作。${NC}\n"
+        sleep 1
+        return
+    fi
+
+    # 停止系統服務以釋放檔案鎖
+    stop_system false
+
+    echo -e "  ${CYAN}🧹 正在清除套件依賴與建置檔...${NC}"
+    log "Running clean dependencies - preserving configs/data"
+    
+    # 清除主程式依賴
+    rm -rf "$SCRIPT_DIR/node_modules" "$SCRIPT_DIR/package-lock.json"
+    echo -e "    ${GREEN}✔${NC} 已移除主程式 node_modules"
+    
+    # 清除 Dashboard 依賴與建置結果
+    if [ -d "$SCRIPT_DIR/web-dashboard" ]; then
+        rm -rf "$SCRIPT_DIR/web-dashboard/node_modules" "$SCRIPT_DIR/web-dashboard/package-lock.json" "$SCRIPT_DIR/web-dashboard/.next" "$SCRIPT_DIR/web-dashboard/out"
+        echo -e "    ${GREEN}✔${NC} 已移除 Dashboard node_modules 與 out 目錄"
+    fi
+    
+    echo -e "  ${GREEN}✅ 清除完成！${NC}"
+    echo -e "  ${DIM}提示：您可以接著執行「Install」重新安裝套件。${NC}"
+    log "Clean dependencies completed"
+    sleep 2
 }
 
 # ─── Clean Init ───
