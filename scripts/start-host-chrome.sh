@@ -47,6 +47,8 @@ echo "📂 User Data Dir: $USER_DATA_DIR (Temporary profile)"
   --remote-allow-origins=* \
   --no-first-run \
   --no-default-browser-check \
+  --window-size=50,50 \
+  --window-position=0,0 \
   --user-data-dir="$USER_DATA_DIR" >/dev/null 2>&1 &
 
 CHROME_PID=$!

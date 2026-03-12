@@ -218,10 +218,48 @@ class PageInteractor {
         await this.page.evaluate((s) => {
             const btn = document.querySelector(s) ||
                 document.querySelector('button[aria-label*="發送"], button[aria-label*="Send"], button[disabled="false"]');
-            if (btn && btn.offsetHeight > 0) btn.click();
+        if (btn && btn.offsetHeight > 0) btn.click();
         }, sendSelector);
 
+        // 3. 自動置底 (最小化干擾)
+        await this._moveWindowToBottom();
+
         await new Promise(r => setTimeout(r, 200));
+    }
+
+    /**
+     * 🚀 自動將 Chrome 視窗移動到螢幕最底部 (不影響使用者日常操作)
+     */
+    async _moveWindowToBottom() {
+        try {
+            console.log("⚓ [PageInteractor] 正在將 Chrome 視窗自動移動至置底位置...");
+            const session = await this.page.target().createCDPSession();
+            const { windowId } = await session.send('Browser.getWindowForTarget');
+            
+            const screen = await this.page.evaluate(() => ({
+                width: window.screen.availWidth,
+                height: window.screen.availHeight
+            }));
+            
+            const windowWidth = 50;
+            const windowHeight = 50;
+
+            // 將視窗移動到螢幕垂直座標之外 (隱身術)
+            await session.send('Browser.setWindowBounds', {
+                windowId,
+                bounds: {
+                    left: 0,
+                    top: screen.height + 1000,
+                    width: windowWidth,
+                    height: windowHeight,
+                    windowState: 'normal'
+                }
+            });
+            await session.detach();
+            console.log("✅ [PageInteractor] 視窗已成功移至螢幕外 (隱藏)。");
+        } catch (e) {
+            console.warn(`⚠️ [PageInteractor] 視窗移動失敗: ${e.message}`);
+        }
     }
 
     /**
