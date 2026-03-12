@@ -1,9 +1,14 @@
 #!/bin/bash
 
-# ─── Golem Configuration Status ───
-GOLEMS_ACTIVE_COUNT=0
+# ─── Golem Configuration Status ───GOLEMS_ACTIVE_COUNT=0
 GOLEMS_LIST=""
 GOLEMS_JSON_PATH="$SCRIPT_DIR/golems.json"
+INSTALLERS_DIR="$LIB_DIR/installers"
+
+# 載入模組化安裝程式
+[ -f "$INSTALLERS_DIR/node_nvm.sh" ] && source "$INSTALLERS_DIR/node_nvm.sh"
+[ -f "$INSTALLERS_DIR/homebrew.sh" ] && source "$INSTALLERS_DIR/homebrew.sh"
+[ -f "$INSTALLERS_DIR/system_tools.sh" ] && source "$INSTALLERS_DIR/system_tools.sh"
 
 check_multi_golems() {
     # 先讀取 .env 中的 GOLEM_MODE
@@ -141,8 +146,12 @@ check_status() {
 os_detect() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "macos"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+    elif [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qi "microsoft" /proc/version 2>/dev/null; then
+        echo "wsl"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         echo "linux"
+    elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]]; then
+        echo "windows"
     else
         echo "unknown"
     fi
@@ -153,47 +162,93 @@ install_dependency() {
     local os=$(os_detect)
     
     if [[ "$os" == "macos" ]]; then
-        if command -v brew &>/dev/null; then
-            run_quiet_step "嘗試使用 Homebrew 安裝 $pkg_name" brew install "$pkg_name"
-            return $?
+        if ! command -v brew &>/dev/null; then
+            install_homebrew || return 1
         fi
-    elif [[ "$os" == "linux" ]]; then
-        if command -v apt-get &>/dev/null; then
-            run_quiet_step "嘗試使用 apt-get 安裝 $pkg_name" sudo apt-get install -y "$pkg_name"
-            return $?
-        elif command -v dnf &>/dev/null; then
-            run_quiet_step "嘗試使用 dnf 安裝 $pkg_name" sudo dnf install -y "$pkg_name"
-            return $?
-        elif command -v yum &>/dev/null; then
-            run_quiet_step "嘗試使用 yum 安裝 $pkg_name" sudo yum install -y "$pkg_name"
-            return $?
-        elif command -v apk &>/dev/null; then
-            run_quiet_step "嘗試使用 apk 安裝 $pkg_name" sudo apk add "$pkg_name"
-            return $?
-        fi
+        install_system_pkg "$pkg_name"
+    else
+        install_system_pkg "$pkg_name"
     fi
-    return 1
 }
 
 check_dependencies() {
-    local missing=()
-    local tools=("node" "npm" "git" "sed" "awk" "curl")
+    local missing_core=()
+    local missing_others=()
     
+    # 1. 核心依賴檢查
+    for tool in "node" "npm"; do
+        if ! command -v "$tool" &>/dev/null; then
+            missing_core+=("$tool")
+        fi
+    done
+
+    if [ ${#missing_core[@]} -ne 0 ]; then
+        echo ""
+        ui_error "缺少核心環境依賴: ${missing_core[*]}"
+        
+        local os=$(os_detect)
+        
+        # 如果不是 Windows，詢問是否自動安裝
+        if [[ "$os" != "windows" && "$os" != "unknown" ]]; then
+            echo -e "\n${BOLD}${CYAN}是否要由腳本自動安裝 NVM 與 Node.js？${NC}"
+            if confirm_action "這將會下載並安裝最新的 Node.js LTS 版本"; then
+                if install_nvm_node; then
+                    # 安裝成功，重新執行檢查
+                    check_dependencies
+                    return
+                fi
+            fi
+        fi
+
+        case "$os" in
+            "macos")
+                echo -e "${YELLOW}建議做法 (macOS):${NC}"
+                echo -e "  1. 使用 Homebrew: ${CYAN}brew install node${NC}"
+                echo -e "  2. 或從官網下載: https://nodejs.org/"
+                ;;
+            "wsl")
+                echo -e "${YELLOW}建議做法 (WSL):${NC}"
+                echo -e "  1. 使用 nvm (推薦): ${CYAN}curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash${NC}"
+                echo -e "  2. 或使用 apt: ${CYAN}sudo apt update && sudo apt install nodejs npm${NC}"
+                ;;
+            "linux")
+                echo -e "${YELLOW}建議做法 (Linux):${NC}"
+                echo -e "  1. 使用 NodeSource 或 nvm 安裝最新穩定版。"
+                echo -e "  2. 下載地址: https://nodejs.org/en/download/package-manager"
+                ;;
+            "windows")
+                echo -e "${YELLOW}建議做法 (Windows):${NC}"
+                echo -e "  1. 下載並執行 Windows Installer (.msi): https://nodejs.org/"
+                echo -e "  2. 安裝後請重啟 Git Bash 或終端機。"
+                ;;
+            *)
+                echo -e "${YELLOW}請先安裝 Node.js (建議 v20+) 與 npm，再執行此腳本。${NC}"
+                echo -e "${DIM}下載地址: https://nodejs.org/${NC}"
+                ;;
+        esac
+        
+        echo -e "\n${DIM}提示: 對於開發者，建議使用 nvm (Node Version Manager) 管理版本。${NC}"
+        echo ""
+        exit 1
+    fi
+
+    # 2. 其他依賴檢查 (嘗試自動安裝)
+    local tools=("git" "sed" "awk" "curl")
     for tool in "${tools[@]}"; do
         if ! command -v "$tool" &>/dev/null; then
             ui_warn "偵測到缺失依賴: $tool"
             if ! install_dependency "$tool"; then
                 ui_error "無法自動安裝 $tool"
-                missing+=("$tool")
+                missing_others+=("$tool")
             else
                 ui_success "自動安裝 $tool 完成"
             fi
         fi
     done
 
-    if [ ${#missing[@]} -ne 0 ]; then
+    if [ ${#missing_others[@]} -ne 0 ]; then
         echo ""
-        echo -e "${RED}❌ 缺失系統依賴且無法自動修復: ${missing[*]}${NC}"
+        echo -e "${RED}❌ 缺失系統依賴且無法自動修復: ${missing_others[*]}${NC}"
         echo -e "${YELLOW}請手動安裝上述工具後，重新執行腳本。${NC}"
         exit 1
     fi

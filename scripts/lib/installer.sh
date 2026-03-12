@@ -91,11 +91,29 @@ step_install_core() {
     echo -e "  ${DIM}  (puppeteer, blessed, gemini-ai, discord.js ...)${NC}"
     log "Installing core dependencies"
     
-    if ! run_quiet_step "npm install 安裝中" npm install --no-fund --no-audit; then
+    local arch=$(uname -m)
+    local os=$(os_detect)
+    local npm_flags="--no-fund --no-audit"
+    
+    # ─── 架構優化 (ARM64 / Apple Silicon) ───
+    if [[ "$arch" == "arm64" ]] || [[ "$arch" == "aarch64" ]]; then
+        ui_info "偵測到 ARM64 架構 (${arch})，正在調整安裝策略..."
+        if [[ "$os" == "linux" ]] || [[ "$os" == "wsl" ]]; then
+            # Linux ARM64 上的 Puppeteer 預設下載 amd64 Chromium 會失敗
+            ui_warn "Linux ARM64 環境建議使用系統 Chromium 以確保相容性。"
+            echo -e "  ${DIM}提示: sudo apt install chromium-browser -y${NC}"
+            export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+        fi
+    fi
+
+    if ! run_quiet_step "npm install 安裝中" npm install $npm_flags; then
         echo -e "  ${YELLOW}💡 可能原因:${NC}"
         echo -e "     • 網路連線問題 → 請確認網路是否正常"
-        echo -e "     • Node.js 版本不符 → 需要 v18+ (目前: $(node -v 2>/dev/null || echo N/A))"
+        echo -e "     • Node.js 版本不符 → 需要 v20+ (目前: $(node -v 2>/dev/null || echo N/A))"
         echo -e "     • 權限問題 → 嘗試 ${BOLD}sudo npm install${NC}"
+        if [[ "$arch" == "arm64" ]]; then
+            echo -e "     • ${CYAN}ARM64 相容性${NC} → 嘗試安裝系統級編譯工具 (build-essential/python3)"
+        fi
         echo -e "  ${DIM}  詳細日誌: $LOG_FILE${NC}"
         log "FATAL: npm install failed"
         exit 1
@@ -104,7 +122,7 @@ step_install_core() {
     # 確保 TUI 套件存在
     if [ ! -d "$SCRIPT_DIR/node_modules/blessed" ]; then
         ui_info "補安裝 blessed 介面庫..."
-        run_quiet_step "安裝 blessed 套件" npm install blessed blessed-contrib express --no-fund --no-audit
+        run_quiet_step "安裝 blessed 套件" npm install blessed blessed-contrib express $npm_flags
     fi
     ui_success "核心依賴安裝完成\n"
 }
