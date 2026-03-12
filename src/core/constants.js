@@ -30,7 +30,7 @@ const BROWSER_ARGS = Object.freeze([
     '--no-sandbox',
     '--disable-dev-shm-usage',
     '--disable-setuid-sandbox',
-    '--window-size=1280,900',
+    '--window-size=50,50',
     '--disable-gpu',
 ]);
 
