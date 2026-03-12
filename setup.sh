@@ -11,7 +11,7 @@ readonly LIB_DIR="$SCRIPT_DIR/scripts/lib"
 readonly DOT_ENV_PATH="$SCRIPT_DIR/.env"
 readonly LOG_DIR="$SCRIPT_DIR/logs"
 readonly LOG_FILE="$LOG_DIR/setup.log"
-readonly GOLEM_VERSION="9.0.0"
+readonly GOLEM_VERSION=$(grep '"version":' "$SCRIPT_DIR/package.json" | cut -d '"' -f 4)
 
 # ─── Initialize Environment ─────────────────────────────
 mkdir -p "$LOG_DIR"

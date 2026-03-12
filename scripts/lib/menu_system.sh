@@ -4,7 +4,8 @@ show_header() {
     check_status
     clear; echo ""
     box_header_dashboard
-    echo -e "  ${DIM}NODE_NAME: ${NC}${BOLD}${WHITE}$SYS_NAME${NC} ${DIM}• 核心版本: ${NC}${CYAN}v${GOLEM_VERSION}${NC}"
+    echo -ne "  ${DIM}NODE_NAME: ${NC}${BOLD}${WHITE}$SYS_NAME${NC} ${DIM}• 核心版本: ${NC}${CYAN}v${GOLEM_VERSION}${NC}"
+    echo -e " ${DIM}• Node.js: ${NC}${YELLOW}$(node -v 2>/dev/null || echo N/A)${NC}"
     echo ""
 }
 
