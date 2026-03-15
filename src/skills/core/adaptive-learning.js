@@ -22,14 +22,15 @@ async function run(ctx) {
         const learnings = JSON.parse(fs.readFileSync(learningsPath, 'utf8'));
 
         if (action === 'record') {
-            if (!args.content) return "❌ 缺少 content 參數。";
+            const content = args.content || (args.parameters && args.parameters.content);
+            if (!content) return "❌ 缺少 content 參數。";
 
             const newLearning = {
                 id: Date.now().toString(36),
                 timestamp: new Date().toISOString(),
-                category: args.category || 'general',
-                content: args.content,
-                tags: args.tags || []
+                category: args.category || (args.parameters && args.parameters.category) || 'general',
+                content: content,
+                tags: args.tags || (args.parameters && args.parameters.tags) || []
             };
 
             learnings.push(newLearning);
@@ -39,7 +40,7 @@ async function run(ctx) {
         }
 
         if (action === 'search') {
-            const query = (args.query || "").toLowerCase();
+            const query = (args.query || (args.parameters && args.parameters.query) || "").toLowerCase();
             if (!query) return "❌ 缺少 query 參數。";
 
             const results = learnings.filter(l =>

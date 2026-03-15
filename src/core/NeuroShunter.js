@@ -33,7 +33,7 @@ class NeuroShunter {
             if (ctx.platform === 'telegram' && ctx.shouldMentionSender) {
                 finalReply = `${ctx.senderMention} ${parsed.reply}`;
             }
-            console.log(`🤖 [Golem] 說: ${finalReply}`);
+            console.log(`[TERMINAL] 🤖 [Golem] 說: ${finalReply}`);
 
             // ✨ [Log] 記錄 AI 回應
             if (brain && typeof brain._appendChatLog === 'function') {

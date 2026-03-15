@@ -18,10 +18,33 @@ class MessageManager {
         }
 
         for (const chunk of chunks) {
+            // ✅ [Fix] 同步廣播到 Web Dashboard
+            try {
+                const dashboard = require('../../dashboard');
+                if (dashboard && dashboard.webServer) {
+                    // 嘗試從 ctx 提取 GolemId 進行歸類，確保思考中訊息能被正確消除
+                    const golemId = (ctx.instance && ctx.instance.golemConfig) ? ctx.instance.golemConfig.id : 'golem_A';
+                    
+                    const payload = {
+                        time: new Date().toLocaleTimeString('zh-TW', { hour12: false }),
+                        msg: `[${golemId}] ${chunk}`,
+                        type: 'agent',
+                        golemId
+                    };
+                    if (options && options.reply_markup && options.reply_markup.inline_keyboard) {
+                        payload.type = 'approval';
+                        payload.actionData = options.reply_markup.inline_keyboard[0];
+                    }
+                    dashboard.webServer.broadcastLog(payload);
+                }
+            } catch (e) {
+                // 忽略 Dashboard 未載入的錯誤
+            }
+
             try {
                 if (ctx.platform === 'telegram') {
                     await ctx.instance.sendMessage(ctx.chatId, chunk, options);
-                } else {
+                } else if (ctx.platform === 'discord') {
                     const channel = await ctx.instance.channels.fetch(ctx.chatId);
                     const dcOptions = { content: chunk };
                     if (options.reply_markup && options.reply_markup.inline_keyboard) {

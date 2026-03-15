@@ -294,6 +294,33 @@ ${summaryContext || "（目前尚無對話摘要）"}
 
         // --- Dispatch ---
         let sent = false;
+
+        // ✅ [Fix] 同步廣播到 Web Dashboard
+        try {
+            const dashboard = require('../../dashboard');
+            if (dashboard && dashboard.webServer) {
+                const notifyText = msgText; // Use msgText as notifyText
+                let payloadType = 'general';
+                let actionData = null;
+
+                if (opts.reply_markup && opts.reply_markup.inline_keyboard) {
+                    payloadType = 'approval';
+                    actionData = opts.reply_markup.inline_keyboard[0];
+                }
+
+                dashboard.webServer.broadcastLog({
+                    time: new Date().toLocaleTimeString('zh-TW', { hour12: false }),
+                    msg: `[${this.golemId}] ${notifyText}`,
+                    type: payloadType,
+                    raw: notifyText,
+                    actionData,
+                    golemId: this.golemId
+                });
+            }
+        } catch (e) {
+            // 忽略 Dashboard 未載入的錯誤
+        }
+
         if (this.tgBot && tgTargetId) {
             await this.tgBot.sendMessage(tgTargetId, msgText, opts).then(() => sent = true).catch(e => console.error("❌ [Autonomy] TG 通知發送失敗:", e.message));
         }
