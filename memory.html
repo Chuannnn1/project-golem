@@ -10,28 +10,62 @@
     <style>
         :root {
             --bg-color: #fcf8e3;
-            /* 米黃色背景 */
             --box-bg: #ffffff;
             --text-color: #4a4a4a;
             --accent-pink: #ff6b81;
-            /* 重點色：粉紅 */
             --accent-blue: #48dbfb;
-            /* 重點色：粉藍 */
             --border-color: #2d3436;
             --shadow-color: rgba(0, 0, 0, 0.15);
+            --grid-color: #dcdde1;
+        }
+
+        /* Dark Mode Overrides */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --box-bg: #2d3436;
+                --text-color: #dfe6e9;
+                --accent-pink: #ff7675;
+                --accent-blue: #74b9ff;
+                --border-color: #000000;
+                --shadow-color: rgba(0, 0, 0, 0.5);
+                --grid-color: #2d3436;
+            }
+        }
+
+        /* Generic Theme Sync Classes */
+        html.dark {
+            --bg-color: #1a1a1a;
+            --box-bg: #2d3436;
+            --text-color: #dfe6e9;
+            --accent-pink: #ff7675;
+            --accent-blue: #74b9ff;
+            --border-color: #000000;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --grid-color: #2d3436;
+        }
+
+        html.light {
+            --bg-color: #fcf8e3;
+            --box-bg: #ffffff;
+            --text-color: #4a4a4a;
+            --accent-pink: #ff6b81;
+            --accent-blue: #48dbfb;
+            --border-color: #2d3436;
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --grid-color: #dcdde1;
         }
 
         body {
             font-family: 'DotGothic16', "Microsoft JhengHei", sans-serif;
-            /* 英文像素，中文黑體 */
             background-color: var(--bg-color);
-            background-image: radial-gradient(#dcdde1 2px, transparent 2px);
-            /* 點點背景 */
+            background-image: radial-gradient(var(--grid-color) 2px, transparent 2px);
             background-size: 20px 20px;
             color: var(--text-color);
             padding: 30px;
             max-width: 900px;
             margin: 0 auto;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         h1 {
@@ -40,7 +74,7 @@
             font-size: 1.4rem;
             margin-bottom: 2rem;
             line-height: 1.8;
-            text-shadow: 2px 2px 0px #fff;
+            text-shadow: 2px 2px 0px var(--box-bg);
             border-bottom: 4px solid var(--border-color);
             padding-bottom: 10px;
         }
@@ -90,50 +124,35 @@
             font-size: 0.9rem;
             padding: 15px;
             border: 4px solid var(--border-color);
-            background: #fff;
+            background: var(--box-bg);
             display: flex;
             align-items: center;
             transition: all 0.2s;
             box-shadow: 4px 4px 0px var(--shadow-color);
+            color: var(--text-color);
         }
 
         .status-ok {
-            background: #dff9fb;
-            /* 淺藍背景 */
-            color: #22a6b3;
-            border-color: #22a6b3;
+            background: var(--box-bg);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+            font-weight: bold;
         }
 
         .status-error {
-            background: #ff7979;
+            background: var(--accent-pink);
             color: white;
+            border-color: var(--border-color);
         }
 
         /* 💓 心跳動畫 */
         @keyframes heartbeat {
-            0% {
-                transform: scale(1);
-            }
-
-            15% {
-                transform: scale(1.05);
-            }
-
-            30% {
-                transform: scale(1);
-            }
-
-            45% {
-                transform: scale(1.05);
-            }
-
-            60% {
-                transform: scale(1);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+            0% { transform: scale(1); }
+            15% { transform: scale(1.05); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.05); }
+            60% { transform: scale(1); }
+            100% { transform: scale(1); }
         }
 
         .heartbeat {
@@ -143,8 +162,8 @@
         /* 日誌區塊 */
         .log {
             font-family: 'DotGothic16', monospace;
-            background: #2d3436;
-            color: #dfe6e9;
+            background: var(--border-color);
+            color: var(--text-color);
             padding: 15px;
             border: 4px solid var(--border-color);
             height: 350px;
@@ -158,13 +177,13 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #eee;
-            border-left: 2px solid #000;
+            background: var(--bg-color);
+            border-left: 2px solid var(--border-color);
         }
 
         ::-webkit-scrollbar-thumb {
             background: var(--accent-pink);
-            border: 2px solid #000;
+            border: 2px solid var(--border-color);
         }
 
         .badge-ver {
@@ -172,10 +191,41 @@
             color: #000;
             padding: 2px 6px;
             font-size: 0.6em;
-            border: 2px solid #000;
+            border: 2px solid var(--border-color);
             vertical-align: middle;
         }
     </style>
+    <script>
+        // Theme Synchronization from parent Dashboard
+        function syncTheme() {
+            try {
+                const theme = localStorage.getItem('theme') || 'dark';
+                if (theme === 'system') {
+                    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.classList.toggle('dark', isDark);
+                    document.documentElement.classList.toggle('light', !isDark);
+                } else {
+                    document.documentElement.classList.toggle('dark', theme === 'dark');
+                    document.documentElement.classList.toggle('light', theme === 'light');
+                }
+            } catch (e) {
+                console.error("Theme sync failed", e);
+            }
+        }
+        
+        // Initial sync
+        syncTheme();
+        
+        // Watch for local storage changes (from other tabs/windows)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'theme') syncTheme();
+        });
+        
+        // Also watch for system theme changes if set to system
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (localStorage.getItem('theme') === 'system') syncTheme();
+        });
+    </script>
 </head>
 
 <body>

@@ -152,24 +152,24 @@ export default function OfficePage() {
     }, []);
 
     return (
-        <div className="h-full w-full bg-[#1A1A1A] p-0 flex flex-col items-center justify-center font-[family-name:var(--font-press-start)] antialiased">
-            <div className="relative w-full h-full bg-[#3A3C45] border-8 border-[#2B2D31] p-1 shadow-2xl overflow-hidden flex flex-col">
+        <div className="h-full w-full bg-background p-0 flex flex-col items-center justify-center antialiased">
+            <div className="relative w-full h-full bg-card border-8 border-border p-1 shadow-2xl overflow-hidden flex flex-col">
                 {/* Top HUD Bar */}
-                <div className="w-full bg-[#3B5B8C] border-4 border-[#25395A] rounded-sm p-2 mb-1 flex justify-between items-center text-white text-[10px] md:text-[10px] z-30">
+                <div className="w-full bg-secondary border-4 border-border rounded-sm p-2 mb-1 flex justify-between items-center text-foreground text-[10px] z-30">
                     <div className="flex items-center gap-2">
-                        <span className="text-[#FFD700] drop-shadow-[2px_2px_0_rgba(0,0,0,1)] whitespace-nowrap hidden md:inline">GOLEM DEV STORY</span>
+                        <span className="text-primary font-bold drop-shadow-sm whitespace-nowrap hidden md:inline">GOLEM DEV STORY</span>
 
                         <div className="relative ml-2" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
-                                className="px-3 py-1 border-2 border-black bg-[#1D2B44] text-[8px] font-bold text-white hover:bg-[#25395A] transition-all flex items-center gap-2"
+                                className="px-3 py-1 border-2 border-border bg-background text-[8px] font-bold text-foreground hover:bg-accent transition-all flex items-center gap-2"
                             >
                                 👥 {selectedTeam === 'default' ? 'MAIN OFFICE' : selectedTeam.toUpperCase() + ' SESSION'} <span className="text-[6px]">▼</span>
                             </button>
                             {isTeamDropdownOpen && (
-                                <div className="absolute top-full left-0 mt-1 w-48 bg-[#25395A] border-4 border-black flex flex-col z-[60] shadow-xl">
-                                    <button onClick={() => { setSelectedTeam("default"); setIsTeamDropdownOpen(false); }} className="p-2 text-[8px] text-left hover:bg-white hover:text-black border-b-2 border-black/20">🏠 MAIN OFFICE</button>
-                                    <button onClick={() => { setSelectedTeam("tech"); setIsTeamDropdownOpen(false); }} className="p-2 text-[8px] text-left hover:bg-cyan-500 hover:text-black">💻 TECH TEAM</button>
+                                <div className="absolute top-full left-0 mt-1 w-48 bg-card border-4 border-border flex flex-col z-[60] shadow-xl">
+                                    <button onClick={() => { setSelectedTeam("default"); setIsTeamDropdownOpen(false); }} className="p-2 text-[8px] text-left hover:bg-accent hover:text-accent-foreground border-b-2 border-border/20">🏠 MAIN OFFICE</button>
+                                    <button onClick={() => { setSelectedTeam("tech"); setIsTeamDropdownOpen(false); }} className="p-2 text-[8px] text-left hover:bg-primary/20 hover:text-primary">💻 TECH TEAM</button>
                                 </div>
                             )}
                         </div>
@@ -183,7 +183,7 @@ export default function OfficePage() {
                 {/* Inner Room Area */}
                 <div
                     ref={containerRef}
-                    className="flex-1 relative bg-center bg-no-repeat border-4 border-[#25395A] rounded-sm overflow-hidden z-0 shadow-[inset_0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-700"
+                    className="flex-1 relative bg-center bg-no-repeat border-4 border-border rounded-sm overflow-hidden z-0 shadow-[inset_0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-700"
                     style={{
                         backgroundImage: selectedTeam === 'tech' ? "url('/pixel_bg_tech.png')" : "url('/office_bg.png')",
                         backgroundColor: selectedTeam === 'tech' ? '#0a0a2a' : '#3B5B8C',
@@ -235,17 +235,17 @@ export default function OfficePage() {
                 </div>
 
                 {/* Bottom HUD bar */}
-                <div className="w-full bg-[#3B5B8C] border-4 border-[#25395A] border-t-0 p-2 flex justify-between items-center text-[8px] md:text-[10px] text-white z-40">
+                <div className="w-full bg-secondary border-4 border-border border-t-0 p-2 flex justify-between items-center text-[8px] md:text-[10px] text-foreground z-40">
                     <div className="flex items-center gap-4">
-                        <span className="text-[#FFD700]">PROJECT: <span className="text-white ml-2">Multi-Agent System v2.0</span></span>
-                        <span className="text-gray-400">|</span>
+                        <span className="text-primary font-bold">PROJECT: <span className="text-foreground font-normal ml-2">Multi-Agent System v2.0</span></span>
+                        <span className="text-muted-foreground">|</span>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <span className="text-[#FFD700]">CURRENT SCENE: <span className="text-cyan-400 ml-2 uppercase">{selectedTeam} {selectedTeam !== 'default' ? 'STUDIO' : 'OFFICE'}</span></span>
+                        <span className="text-primary font-bold">CURRENT SCENE: <span className="text-accent-foreground ml-2 uppercase">{selectedTeam} {selectedTeam !== 'default' ? 'STUDIO' : 'OFFICE'}</span></span>
                         <button
                             onClick={() => setIsLogExpanded(!isLogExpanded)}
-                            className="bg-black/60 border-2 border-[#FFD700] px-2 py-0.5 text-[#FFD700] hover:bg-black transition-colors transform active:scale-95 flex items-center gap-1"
+                            className="bg-card/60 border-2 border-primary px-2 py-0.5 text-primary hover:bg-card transition-colors transform active:scale-95 flex items-center gap-1 font-bold"
                         >
                             {isLogExpanded ? 'CLOSE LOG ▲' : 'OPEN LOG ▼'}
                         </button>
@@ -254,7 +254,7 @@ export default function OfficePage() {
 
                 <div
                     ref={logConsoleRef}
-                    className={`w-full bg-black/80 border-4 border-[#25395A] border-t-0 p-2 overflow-y-auto font-[family-name:Courier_New] text-[10px] text-green-400 custom-scrollbar flex flex-col gap-1 z-40 shrink-0 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-all duration-500 origin-bottom ${isLogExpanded ? 'h-32 opacity-100' : 'h-0 opacity-0 py-0 border-b-0'}`}
+                    className={`w-full bg-card/90 border-4 border-border border-t-0 p-2 overflow-y-auto font-mono text-[10px] text-primary custom-scrollbar flex flex-col gap-1 z-40 shrink-0 shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)] transition-all duration-500 origin-bottom ${isLogExpanded ? 'h-32 opacity-100' : 'h-0 opacity-0 py-0 border-b-0'}`}
                 >
                     {messageHistory.length === 0 ? (
                         <div className="text-gray-500 italic">Waiting for system logs...</div>

@@ -6,6 +6,8 @@ import { socket } from "@/lib/socket";
 import { User, Bot, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Typewriter } from "@/components/Typewriter";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessage {
     id: string;
@@ -185,23 +187,23 @@ export default function DirectChatPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-gray-950 p-6 max-h-screen">
+        <div className="flex flex-col h-full bg-background p-6 max-h-screen">
             <div className="flex justify-between items-center mb-6 flex-shrink-0">
                 <div>
-                    <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
+                    <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">
                         直接交談 (Direct Chat)
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                         與目前活躍的 Golem ({activeGolem || "未選擇"}) 進行對話測試。不須透過外部通訊軟體。
                     </p>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden flex flex-col bg-gray-950 rounded-xl border border-gray-800">
+            <div className="flex-1 overflow-hidden flex flex-col bg-card rounded-xl border border-border">
                 {/* Chat window */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
                     {messages.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-gray-600 italic">
+                        <div className="flex items-center justify-center h-full text-muted-foreground/60 italic">
                             請在下方輸入訊息開始交談...
                         </div>
                     ) : (
@@ -221,29 +223,36 @@ export default function DirectChatPage() {
                                         <div className={cn("flex items-center space-x-2 mb-1", isUser && "flex-row-reverse space-x-reverse")}>
                                             <div className={cn(
                                                 "w-6 h-6 rounded-full flex items-center justify-center border flex-shrink-0",
-                                                isUser ? "bg-blue-900 border-blue-700" : "bg-cyan-900 border-cyan-700"
+                                                isUser ? "bg-blue-600/10 border-blue-500/20" : "bg-primary/10 border-primary/20"
                                             )}>
-                                                {isUser ? <User className="w-3 h-3 text-blue-300" /> : <Bot className="w-3 h-3 text-cyan-300" />}
+                                                {isUser ? <User className="w-3 h-3 text-blue-600 dark:text-blue-300" /> : <Bot className="w-3 h-3 text-primary" />}
                                             </div>
-                                            <span className={cn("text-xs font-bold", isUser ? "text-blue-400" : "text-cyan-400")}>{msg.sender}</span>
-                                            <span className="text-[10px] text-gray-600">{msg.timestamp}</span>
+                                            <span className={cn("text-xs font-bold", isUser ? "text-blue-600 dark:text-blue-400" : "text-primary")}>{msg.sender}</span>
+                                            <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
                                         </div>
                                     )}
                                     <div
                                         className={cn(
                                             "p-3 rounded-2xl text-sm whitespace-pre-wrap break-words inline-block shadow-sm transition-all duration-200",
                                             msg.isThinking
-                                                ? "animate-pulse bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-gray-700/50 text-gray-500 italic backdrop-blur-sm" :
+                                                ? "animate-pulse bg-secondary border border-border text-muted-foreground italic backdrop-blur-sm" :
                                                 msg.isSystem
-                                                    ? "bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-tl-none text-gray-300 shadow-indigo-500/5"
+                                                    ? "bg-secondary/50 border border-border rounded-tl-none text-foreground/90 shadow-sm"
                                                     : isUser
-                                                        ? "bg-gradient-to-br from-blue-600/20 to-indigo-600/20 text-blue-100 border border-blue-500/30 rounded-tr-none shadow-blue-500/10"
-                                                        : "bg-gradient-to-br from-cyan-600/20 to-teal-600/20 text-cyan-100 border border-cyan-500/30 rounded-tl-none shadow-cyan-500/10"
+                                                        ? "bg-blue-600/10 text-blue-900 dark:text-blue-100 border border-blue-500/20 rounded-tr-none shadow-sm"
+                                                        : "bg-primary/10 text-foreground font-medium border border-primary/20 rounded-tl-none shadow-sm"
                                         )}
                                     >
                                         {msg.isThinking ? "思考中..." : (msg.isSystem && !msg.isHistory ?
                                             <Typewriter content={msg.content.replace(/\n{2,}/g, '\n\n').trim()} onComplete={() => handleTypingComplete(msg.id)} />
-                                            : msg.content.replace(/\n{2,}/g, '\n\n').trim())}
+                                            : (msg.isSystem ?
+                                                <div className="prose dark:prose-invert prose-sm max-w-none prose-p:m-0 prose-headings:my-1 prose-pre:my-1 prose-pre:bg-zinc-950 dark:prose-pre:bg-gray-950 prose-pre:border prose-pre:border-border dark:prose-pre:border-gray-800 prose-ul:list-disc prose-ul:ml-4 prose-ol:list-decimal prose-ol:ml-4 prose-li:m-0 leading-snug [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {msg.content.replace(/\n{2,}/g, '\n\n').trim()}
+                                                    </ReactMarkdown>
+                                                </div>
+                                                : msg.content.replace(/\n{2,}/g, '\n\n').trim()
+                                            ))}
                                     </div>
                                     {msg.actionData && Array.isArray(msg.actionData) && (!msg.isSystem || msg.isHistory || completedTypingMsgs.has(msg.id)) && (
                                         <div className="flex flex-wrap gap-2 mt-3">
@@ -256,12 +265,12 @@ export default function DirectChatPage() {
                                                         key={idx}
                                                         onClick={() => handleAction(btn.callback_data)}
                                                         className={cn(
-                                                            "px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 border flex items-center gap-2 transform active:scale-95 shadow-lg",
+                                                            "px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 border flex items-center gap-2 transform active:scale-95 shadow-md",
                                                             isApprove
-                                                                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white"
                                                                 : isDeny
-                                                                    ? "bg-rose-500/10 border-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-white"
-                                                                    : "bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white"
+                                                                    ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                                                    : "bg-secondary border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                                         )}
                                                     >
                                                         {btn.text}
@@ -277,10 +286,10 @@ export default function DirectChatPage() {
                 </div>
 
                 {/* Input area */}
-                <div className="p-3 border-t border-gray-800 bg-gray-900/50">
+                <div className="p-3 border-t border-border bg-card/50">
                     <div className="relative flex items-center">
                         <textarea
-                            className="flex-1 max-h-32 min-h-[44px] bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 pr-12 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 resize-none transition-all"
+                            className="flex-1 max-h-32 min-h-[44px] bg-secondary/50 border border-border rounded-lg px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none transition-all"
                             placeholder={activeGolem ? `傳送訊息給 ${activeGolem}...` : "請先選擇一個 Golem..."}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}

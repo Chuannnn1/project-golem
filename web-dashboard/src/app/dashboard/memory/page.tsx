@@ -20,21 +20,21 @@ export default function MemoryPage() {
     }, [activeGolem]);
 
     return (
-        <div className="p-6 h-full flex flex-col space-y-6 overflow-hidden bg-gray-950 text-gray-300 relative font-sans">
+        <div className="p-6 h-full flex flex-col space-y-6 overflow-hidden bg-background text-foreground/80 relative font-sans">
 
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between space-y-4 md:space-y-0 pb-4 border-b border-gray-800 z-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between space-y-4 md:space-y-0 pb-4 border-b border-border z-10">
                 <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-cyan-950/50 rounded-xl border border-cyan-900/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] flex-shrink-0">
-                        <BrainCircuit className="w-8 h-8 text-cyan-400" />
+                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.1)] flex-shrink-0">
+                        <BrainCircuit className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tight">
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-blue-500 tracking-tight">
                             Neural Core
                         </h1>
-                        <div className="text-sm text-gray-500 mt-1 flex items-center flex-wrap">
+                        <div className="text-sm text-muted-foreground mt-1 flex items-center flex-wrap">
                             Vector Memory & Chronos Engine
-                            <span className="ml-3 px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800 text-xs font-mono text-gray-400">
+                            <span className="ml-3 px-2 py-0.5 rounded-full bg-secondary border border-border text-xs font-mono text-muted-foreground">
                                 v9.0.3
                             </span>
                         </div>
@@ -42,10 +42,10 @@ export default function MemoryPage() {
                 </div>
 
                 {activeGolem && (
-                    <div className="flex items-center bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-lg p-2 px-4 shadow-sm flex-shrink-0">
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse mr-3"></div>
-                        <span className="text-gray-400 text-sm mr-2">Target Node:</span>
-                        <span className="text-cyan-300 font-mono font-semibold tracking-wide">
+                    <div className="flex items-center bg-card/80 backdrop-blur-sm border border-border rounded-lg p-2 px-4 shadow-sm flex-shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse mr-3"></div>
+                        <span className="text-muted-foreground text-sm mr-2">Target Node:</span>
+                        <span className="text-primary font-mono font-semibold tracking-wide">
                             {activeGolem}
                         </span>
                     </div>
@@ -88,10 +88,10 @@ export default function MemoryPage() {
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         {/* Main Memory Table (Takes 2 columns on XL screens) */}
                         <div className="xl:col-span-2 flex flex-col space-y-4">
-                            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-5 shadow-lg flex-1 flex flex-col">
+                            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-5 shadow-lg flex-1 flex flex-col">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-lg font-semibold text-white flex items-center">
-                                        <Database className="w-5 h-5 mr-2 text-cyan-400" />
+                                    <h2 className="text-lg font-semibold text-foreground flex items-center">
+                                        <Database className="w-5 h-5 mr-2 text-primary" />
                                         Memory Records
                                     </h2>
                                 </div>
@@ -103,12 +103,12 @@ export default function MemoryPage() {
 
                         {/* System Log Sidebar (Takes 1 column on XL screens) */}
                         <div className="xl:col-span-1 flex flex-col space-y-4 h-[600px] xl:h-[auto]">
-                            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-5 shadow-lg flex-1 flex flex-col h-full min-h-[500px]">
-                                <h2 className="text-lg font-semibold text-white flex items-center mb-4 flex-shrink-0">
-                                    <Activity className="w-5 h-5 mr-2 text-cyan-400" />
+                            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-5 shadow-lg flex-1 flex flex-col h-full min-h-[500px]">
+                                <h2 className="text-lg font-semibold text-foreground flex items-center mb-4 flex-shrink-0">
+                                    <Activity className="w-5 h-5 mr-2 text-primary" />
                                     Neural Telemetry
                                 </h2>
-                                <div className="flex-1 bg-black/60 rounded-lg overflow-hidden border border-gray-800/50 shadow-inner">
+                                <div className="flex-1 bg-background/60 rounded-lg overflow-hidden border border-border/50 shadow-inner">
                                     <LogStream
                                         className="border-0 bg-transparent h-full shadow-none p-3"
                                         autoScroll={true}
@@ -138,20 +138,20 @@ export default function MemoryPage() {
 
 function StatusCard({ icon: Icon, title, value, description, status }: { icon: any, title: string, value: string, description: string, status: 'online' | 'loading' }) {
     return (
-        <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 flex flex-col relative overflow-hidden group hover:border-gray-700 transition-colors">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-4 flex flex-col relative overflow-hidden group hover:border-primary/50 transition-colors">
             <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                     <div className={cn(
                         "p-2 rounded-lg transition-colors",
-                        status === 'online' ? "bg-cyan-950/50 text-cyan-400 group-hover:bg-cyan-900/50" : "bg-gray-800 text-gray-500"
+                        status === 'online' ? "bg-primary/10 text-primary group-hover:bg-primary/20" : "bg-muted text-muted-foreground"
                     )}>
                         <Icon className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-gray-400 text-xs font-medium uppercase tracking-wider">{title}</h3>
+                        <h3 className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">{title}</h3>
                         <p className={cn(
                             "text-sm font-semibold mt-0.5",
-                            status === 'online' ? "text-gray-100" : "text-gray-600"
+                            status === 'online' ? "text-foreground" : "text-muted-foreground/60"
                         )}>{value}</p>
                     </div>
                 </div>

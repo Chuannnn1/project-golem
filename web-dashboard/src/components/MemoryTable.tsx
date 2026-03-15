@@ -148,7 +148,7 @@ export function MemoryTable() {
     }, [memories, searchQuery, filterType]);
 
     if (!activeGolem) {
-        return <div className="text-gray-500 italic p-4 text-sm animate-pulse">Awaiting active node target...</div>;
+        return <div className="text-muted-foreground italic p-4 text-sm animate-pulse">Awaiting active node target...</div>;
     }
 
     return (
@@ -157,19 +157,19 @@ export function MemoryTable() {
             {/* Top Toolbar */}
             <div className="flex flex-col xl:flex-row space-y-3 xl:space-y-0 xl:space-x-3">
                 {/* Add Memory Input */}
-                <div className="flex-1 flex bg-gray-950/50 rounded-lg p-1 border border-gray-800 focus-within:border-cyan-500/50 transition-colors shadow-inner">
+                <div className="flex-1 flex bg-secondary/30 rounded-lg p-1 border border-border focus-within:border-primary/50 transition-colors shadow-inner">
                     <input
                         type="text"
                         value={newMemory}
                         onChange={(e) => setNewMemory(e.target.value)}
                         placeholder="Inject new memory context..."
-                        className="flex-1 bg-transparent border-none px-3 py-1.5 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-0"
+                        className="flex-1 bg-transparent border-none px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
                         onKeyDown={(e) => e.key === 'Enter' && addMemory()}
                     />
                     <Button
                         onClick={addMemory}
                         disabled={!newMemory.trim()}
-                        className="bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 shadow-none h-8 px-3 rounded-md transition-colors border border-cyan-500/20"
+                        className="bg-primary/10 text-primary hover:bg-primary/20 shadow-none h-8 px-3 rounded-md transition-colors border border-primary/20"
                         size="sm"
                     >
                         <Plus className="w-4 h-4 mr-1" />
@@ -180,13 +180,13 @@ export function MemoryTable() {
                 {/* Search & Filter */}
                 <div className="flex space-x-2">
                     <div className="relative flex-1 xl:w-48">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Filter records..."
-                            className="w-full bg-gray-950/50 border border-gray-800 rounded-lg pl-9 pr-3 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-cyan-500/50 transition-colors h-10 shadow-inner"
+                            className="w-full bg-secondary/30 border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors h-10 shadow-inner"
                         />
                     </div>
 
@@ -194,32 +194,32 @@ export function MemoryTable() {
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="appearance-none bg-gray-950/50 border border-gray-800 rounded-lg pl-9 pr-8 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-cyan-500/50 transition-colors h-10 shadow-inner cursor-pointer"
+                            className="appearance-none bg-secondary/30 border border-border rounded-lg pl-9 pr-8 py-1.5 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors h-10 shadow-inner cursor-pointer"
                         >
                             <option value="all">All Types</option>
                             {uniqueTypes.map(t => (
                                 <option key={t} value={t}>{t}</option>
                             ))}
                         </select>
-                        <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>
 
                     <Button
                         variant="outline"
                         onClick={fetchMemories}
                         disabled={loading}
-                        className="bg-gray-900 border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800 h-10 w-10 p-0"
+                        className="bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent h-10 w-10 p-0"
                     >
-                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin text-cyan-400")} />
+                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin text-primary")} />
                     </Button>
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="flex-1 border border-gray-800/80 rounded-xl overflow-hidden bg-black/40 shadow-inner flex flex-col">
+            <div className="flex-1 border border-border rounded-xl overflow-hidden bg-card/40 shadow-inner flex flex-col">
                 <div className="overflow-y-auto flex-1 custom-scrollbar">
-                    <table className="w-full text-sm text-left text-gray-400 relative">
-                        <thead className="text-xs text-gray-500 uppercase bg-gray-900/80 sticky top-0 backdrop-blur-md z-10 border-b border-gray-800">
+                    <table className="w-full text-sm text-left text-muted-foreground relative">
+                        <thead className="text-xs text-muted-foreground uppercase bg-secondary/80 sticky top-0 backdrop-blur-md z-10 border-b border-border">
                             <tr>
                                 <th scope="col" className="px-5 py-3 font-medium tracking-wider w-8">#</th>
                                 <th scope="col" className="px-4 py-3 font-medium tracking-wider w-32 text-center">Type</th>
@@ -227,18 +227,18 @@ export function MemoryTable() {
                                 <th scope="col" className="px-4 py-3 font-medium tracking-wider w-16 text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800/50">
+                        <tbody className="divide-y divide-border/50">
                             {filteredMemories.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-600">
+                                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground/50">
                                         <Database className="w-8 h-8 mx-auto mb-3 opacity-20" />
                                         <p>No memory records found.</p>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredMemories.map((mem, index) => (
-                                    <tr key={index} className="hover:bg-cyan-950/10 transition-colors group">
-                                        <td className="px-5 py-4 text-xs text-gray-600 font-mono">
+                                    <tr key={index} className="hover:bg-accent/50 transition-colors group">
+                                        <td className="px-5 py-4 text-xs text-muted-foreground/60 font-mono">
                                             {index + 1}
                                         </td>
                                         <td className="px-4 py-3 text-center">
@@ -253,12 +253,12 @@ export function MemoryTable() {
                                                 {mem.metadata?.type || 'general'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-gray-300 break-words max-w-xl text-sm leading-relaxed">
+                                        <td className="px-4 py-3 text-foreground break-words max-w-xl text-sm leading-relaxed">
                                             {mem.text}
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             <button
-                                                className="text-gray-600 hover:text-cyan-400 transition-colors opacity-0 group-hover:opacity-100"
+                                                className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                                                 title="Copy to clipboard"
                                                 onClick={() => navigator.clipboard.writeText(mem.text)}
                                             >
@@ -274,8 +274,8 @@ export function MemoryTable() {
             </div>
 
             {/* Footer Toolbar */}
-            <div className="flex justify-between items-center pt-2 border-t border-gray-800/50">
-                <div className="text-xs text-gray-500 font-mono flex items-center">
+            <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                <div className="text-xs text-muted-foreground font-mono flex items-center">
                     Total Records: {filteredMemories.length} {searchQuery && `(Filtered from ${memories.length})`}
                 </div>
 

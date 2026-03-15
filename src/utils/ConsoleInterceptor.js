@@ -31,7 +31,9 @@ class ConsoleInterceptor {
                 msg: args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')
             });
         }
-        return `[${this._timestamp()}] [${level}]`;
+        // In human mode, we only return the level tag. 
+        // The timestamp is added by SystemLogger to avoid duplicates in the CLI.
+        return `[${level}]`;
     }
 
     /**
