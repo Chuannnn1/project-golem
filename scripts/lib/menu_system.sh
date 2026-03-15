@@ -167,6 +167,13 @@ launch_system() {
         shift
     done
 
+    # [MAGIC MODE] 自動清理殘留進程與釋放 Port (3000/3001)
+    if [ "${GOLEM_MAGIC_MODE:-false}" = "true" ]; then
+        echo -e "  🧹 魔法模式：自動排除潛在的 Port 佔用..."
+        # 隱藏 stdout，保留必要的錯誤輸出，讓畫面乾淨一點
+        stop_system false >/dev/null 2>&1
+    fi
+
     check_status
 
     if [ "$bg_mode" = true ]; then

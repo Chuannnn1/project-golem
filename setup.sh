@@ -56,10 +56,19 @@ print_status() {
 }
 
 # ─── Entry Point ────────────────────────────────────────
+# Detect magic mode early to bypass prompts during check_dependencies
+if [ "${1:-}" = "--magic" ]; then
+    export GOLEM_MAGIC_MODE=true
+fi
+
 # Check basic dependencies first
 check_dependencies
 
 case "${1:-}" in
+    --magic)
+        # GOLEM_MAGIC_MODE already set above
+        run_full_install
+        ;;
     --start)
         shift
         launch_args=""
@@ -90,6 +99,7 @@ case "${1:-}" in
         echo ""
         echo "OPTIONS:"
         echo "  (none)        啟動互動式主選單"
+        echo "  --magic       全自動背景安裝與設定 (無對話框)"
         echo "  --start       直接啟動系統 (跳過選單)"
         echo "  --start --bg  以背景模式啟動系統"
         echo "  --install     執行完整安裝流程"

@@ -86,6 +86,11 @@ mask_value() {
 confirm_action() {
     local msg="${1:-確認執行?}"
     
+    # [MAGIC MODE BYPASS]
+    if [ "${GOLEM_MAGIC_MODE:-false}" = "true" ]; then
+        return 0
+    fi
+    
     local options=()
     options+=("Yes|是 (Proceed)")
     options+=("No|否 (Cancel)")

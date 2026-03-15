@@ -173,17 +173,25 @@ graph LR
 # 1. Clone 專案
 git clone https://github.com/Arvincreator/project-golem.git
 cd project-golem
+```
 
-# 2. 一鍵安裝（Mac / Linux）
-chmod +x setup.sh && ./setup.sh --install
+**⚡ 最推薦：全自動無痛一鍵安裝與啟動 (Magic Mode)**
+雙擊專案目錄下的 `Start-Golem.command` (Mac/Linux)。
+系統內建**自動化防呆機制**，將會無對話框全自動替您完成：
+1. 自動排除被佔用的通訊埠 (如 3000/3001)
+2. 自動偵測並透過腳本安裝/切換至系統所需的 **Node.js v20** 及 npm
+3. 靜默安裝所有核心依賴與 Web 控制台介面
+4. 完成所有步驟後直接啟動 Golem！
 
-# 3. 配置環境變數
-./setup.sh --config
+**🔨 進階開發者 (終端機手動操作)**
+```bash
+# 啟動互動式安裝與管理選單
+chmod +x setup.sh && ./setup.sh
 
-# 4. 啟動 (最推薦)
-雙擊專案目錄下的 `Start-Golem.command` (Mac/Linux) 或 `Start-Golem.bat` (Windows)，系統將會**自動判斷**是否為初次安裝並執行所有部署，安裝完成後會直接啟動 Golem。
+# 靜默執行全自動安裝 (等同雙擊 Start-Golem.command 效果)
+./setup.sh --magic
 
-若您偏好終端機操作，也可手動執行：
+# 略過安裝，直接啟動
 ./setup.sh --start
 ```
 
