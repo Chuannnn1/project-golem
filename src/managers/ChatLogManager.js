@@ -203,10 +203,8 @@ class ChatLogManager {
 
         // 檢查是否已有摘要
         const summaryPath = path.join(this.dirs.daily, `${dateString}.log`);
-        if (fs.existsSync(summaryPath)) {
-            console.log(`ℹ️ [LogManager] ${dateString} 已有每日摘要，跳過壓縮。`);
-            return;
-        }
+        // ✨ [H-1 Fix] 即使已有摘要，只要還有源檔案，就不應 return，而是進入壓縮並「追加」到摘要陣列中
+        // 這樣確保如果在中午觸發了一次「本日壓縮」，跨日時還能把下午與晚上的日誌補齊。
 
         const files = fs.readdirSync(this.dirs.hourly)
             .filter(f => f.startsWith(dateString) && f.length === 14 && f.endsWith('.log'))

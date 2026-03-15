@@ -25,14 +25,29 @@ class AutonomyManager {
     }
 
     start() {
-        if (!ConfigManager.CONFIG.TG_TOKEN && !ConfigManager.CONFIG.DC_TOKEN) return;
+        console.log(`🚀 [Autonomy][${this.golemId}] Starting autonomy services...`);
         this.scheduleNextAwakening();
         setInterval(() => this.timeWatcher(), 60000);
-        // ✨ [v9.0.7] 每 30 分鐘自動檢查一次日誌狀態
-        setInterval(() => this.checkArchiveStatus(), 30 * 60000);
+        // ✨ [v9.0.7] 定時自動檢查一次日誌狀態 (改為動態排程，支援熱重載)
+        this.archiveTimer = null;
+        this.scheduleNextArchive();
     }
+
+    /**
+     * 動態排程下一次日誌檢查，確保 ConfigManager.CONFIG 的變更能即時生效
+     */
+    scheduleNextArchive() {
+        if (this.archiveTimer) clearTimeout(this.archiveTimer);
+        const intervalMin = ConfigManager.CONFIG.ARCHIVE_CHECK_INTERVAL || 30;
+        console.log(`📡 [Autonomy] 已排定下一次日誌檢查：${intervalMin} 分鐘後...`);
+        this.archiveTimer = setTimeout(async () => {
+            await this.checkArchiveStatus();
+            this.scheduleNextArchive(); // 遞迴排定下一次
+        }, intervalMin * 60000);
+    }
+
     async checkArchiveStatus() {
-        console.log(`🕒 [Autonomy] 定時檢查日誌壓縮狀態 (雙重門檻掃描)...`);
+        console.log(`🕒 [Autonomy] 定時檢查日誌壓縮狀態 (雙重門檻掃描: ${ConfigManager.CONFIG.ARCHIVE_CHECK_INTERVAL}min)...`);
         try {
             const ChatLogManager = require('../managers/ChatLogManager');
             // ✅ [H-1 Fix] 傳入正確 golemId/logDir，確保掃描正確目錄
@@ -45,10 +60,15 @@ class AutonomyManager {
             const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
             const yesterday = logManager._getYesterdayDateString();
 
-            // 門檻設定：本日需累積 12 小時 (半天) 以上，昨日只需 3 小時 (確保最終歸檔)
+            // 門檻設定：從 Config 讀取
+            const thresholdYesterday = ConfigManager.CONFIG.ARCHIVE_THRESHOLD_YESTERDAY;
+            const thresholdToday = ConfigManager.CONFIG.ARCHIVE_THRESHOLD_TODAY;
+
+            console.log(`📊 [Autonomy] 目前門檻設定 -> 昨日: ${thresholdYesterday}, 本日: ${thresholdToday}`);
+
             const checkConfigs = [
-                { date: yesterday, threshold: 3, label: "昨日" },
-                { date: today, threshold: 12, label: "本日" }
+                { date: yesterday, threshold: thresholdYesterday, label: "昨日" },
+                { date: today, threshold: thresholdToday, label: "本日" }
             ];
 
             for (const config of checkConfigs) {
@@ -61,7 +81,9 @@ class AutonomyManager {
                 if (files.length >= threshold) {
                     console.log(`📦 [Autonomy] 門檻達成：${date} (${label}) 已累積 ${files.length} 個時段日誌，啟動自動歸檔程序...`);
 
-                    await this.sendNotification(`📦 **【自動化日誌維護】**\n偵測到${label} (${date}) 已累積達 ${files.length} 小時對話，目前將進行記憶彙整，請稍等...`);
+                    if (ConfigManager.CONFIG.ENABLE_LOG_NOTIFICATIONS) {
+                        await this.sendNotification(`📦 **【自動化日誌維護】**\n偵測到${label} (${date}) 已累積達 ${files.length} 小時對話，目前將進行記憶彙整，請稍等...`);
+                    }
 
                     const logArchiveSkill = require('../skills/core/log-archive');
                     const result = await logArchiveSkill.run({
@@ -69,7 +91,9 @@ class AutonomyManager {
                         args: { date: date }
                     });
 
-                    await this.sendNotification(`✅ **【自動化日誌維護】**\n${date} (${label}) 歸檔完成！\n${result}`);
+                    if (ConfigManager.CONFIG.ENABLE_LOG_NOTIFICATIONS) {
+                        await this.sendNotification(`✅ **【自動化日誌維護】**\n${date} (${label}) 歸檔完成！\n${result}`);
+                    }
                 } else {
                     console.log(`ℹ️ [Autonomy] ${date} (${label}) 目前累積 ${files.length}/${threshold} 份日誌，未達壓縮門檻。`);
                 }

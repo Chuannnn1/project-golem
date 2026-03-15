@@ -146,9 +146,9 @@ class DashboardPlugin {
         process.stdout.write("============================================\n\n");
     }
 
-    setContext(golemId, brain, memory) {
+    setContext(golemId, brain, memory, autonomy) {
         if (this.webServer) {
-            this.webServer.setContext(golemId, brain, memory);
+            this.webServer.setContext(golemId, brain, memory, autonomy);
         }
     }
 }

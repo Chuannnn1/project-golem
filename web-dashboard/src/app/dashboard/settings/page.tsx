@@ -792,6 +792,42 @@ export default function SettingsPage() {
                                 value={config.env.GOLEM_MEMORY_MODE || ""}
                                 onChange={(val) => handleChangeEnv("GOLEM_MEMORY_MODE", val)}
                             />
+
+                            <SettingField
+                                label="系統維護推播通知"
+                                keyName="ENABLE_LOG_NOTIFICATIONS"
+                                placeholder="false"
+                                desc="是否在 Telegram/Discord 接收『自動化日誌維護』彙整通知 (預設 false)"
+                                value={config.env.ENABLE_LOG_NOTIFICATIONS || ""}
+                                onChange={(val) => handleChangeEnv("ENABLE_LOG_NOTIFICATIONS", val)}
+                            />
+
+                            <SettingField
+                                label="日誌檢查間隔 (分)"
+                                keyName="ARCHIVE_CHECK_INTERVAL"
+                                placeholder="30"
+                                desc="自動檢查日誌壓縮狀態的間隔分鐘數 (預設 30)"
+                                value={config.env.ARCHIVE_CHECK_INTERVAL || ""}
+                                onChange={(val) => handleChangeEnv("ARCHIVE_CHECK_INTERVAL", val)}
+                            />
+
+                            <SettingField
+                                label="昨日歸檔門檻 (份)"
+                                keyName="ARCHIVE_THRESHOLD_YESTERDAY"
+                                placeholder="3"
+                                desc="昨日日誌需累積多少份才啟動歸檔 (預設 3)"
+                                value={config.env.ARCHIVE_THRESHOLD_YESTERDAY || ""}
+                                onChange={(val) => handleChangeEnv("ARCHIVE_THRESHOLD_YESTERDAY", val)}
+                            />
+
+                            <SettingField
+                                label="本日歸檔門檻 (份)"
+                                keyName="ARCHIVE_THRESHOLD_TODAY"
+                                placeholder="12"
+                                desc="本日日誌需累積多少份才提前啟動歸檔 (預設 12)"
+                                value={config.env.ARCHIVE_THRESHOLD_TODAY || ""}
+                                onChange={(val) => handleChangeEnv("ARCHIVE_THRESHOLD_TODAY", val)}
+                            />
                             <SettingField
                                 label="資料暫存路徑"
                                 keyName="USER_DATA_DIR"

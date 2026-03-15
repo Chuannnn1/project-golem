@@ -57,7 +57,11 @@ class GolemBrain {
      * @param {boolean} [forceReload=false] - 是否強制重新載入
      */
     async init(forceReload = false) {
-        if (this.browser && !forceReload) return;
+        console.log(`🎬 [Brain] 啟動初始化程序 (forceReload: ${forceReload})...`);
+        if (this.browser && !forceReload) {
+            console.log("✅ [Brain] 瀏覽器實體已存在且無須強制重新載入，跳過啟動。");
+            return;
+        }
 
         let isNewSession = false;
 
@@ -73,10 +77,12 @@ class GolemBrain {
 
         // 2. 取得或建立頁面
         if (!this.page) {
+            console.log(`🚀 [System] 正在建立瀏覽子頁面...`);
             const pages = await this.browser.pages();
             this.page = pages.length > 0 ? pages[0] : await this.browser.newPage();
-            console.log(`🚀 [System] Browser Session Started (Golem: ${this.golemId})`);
+            console.log(`🚀 [System] 瀏覽器分頁已就緒，前往 Gemini APP...`);
             await this.page.goto(URLS.GEMINI_APP, { waitUntil: 'networkidle2' });
+            console.log(`🚀 [System] Gemini 頁面載入完成 (Golem: ${this.golemId})`);
             isNewSession = true;
         }
 
@@ -238,6 +244,7 @@ class GolemBrain {
      * @returns {Promise<string>} 清理後的 AI 回應
      */
     async sendMessage(text, isSystem = false, options = {}) {
+        await this._ensureBrowserHealth();
         if (!this.browser) await this.init();
         try { await this.page.bringToFront(); } catch (e) { }
         await this.setupCDP();
@@ -286,6 +293,7 @@ class GolemBrain {
      */
     async recall(queryText) {
         if (!queryText) return [];
+        await this._ensureBrowserHealth();
         try { return await this.memoryDriver.recall(queryText); } catch (e) { return []; }
     }
 
@@ -295,6 +303,7 @@ class GolemBrain {
      * @param {Object} [metadata={}] - 附加 metadata
      */
     async memorize(text, metadata = {}) {
+        await this._ensureBrowserHealth();
         try { await this.memoryDriver.memorize(text, metadata); } catch (e) { }
     }
 
@@ -323,15 +332,15 @@ class GolemBrain {
     }
 
     /** 連結 Dashboard (若以 dashboard 模式啟動) */
-    _linkDashboard() {
+    _linkDashboard(autonomy = null) {
         if (!process.argv.includes('dashboard')) return;
         try {
             const dashboard = require('../../dashboard');
-            dashboard.setContext(this.golemId, this, this.memoryDriver);
+            dashboard.setContext(this.golemId, this, this.memoryDriver, autonomy);
         } catch (e) {
             try {
                 const dashboard = require('../../dashboard.js');
-                dashboard.setContext(this.golemId, this, this.memoryDriver);
+                dashboard.setContext(this.golemId, this, this.memoryDriver, autonomy);
             } catch (err) {
                 console.error("Failed to link dashboard context:", err);
             }
@@ -480,6 +489,59 @@ class GolemBrain {
             } catch (e) {
                 console.warn(`⚠️ [Brain] 歷史記憶掃描或注入失敗: ${e.message}`);
             }
+        }
+    }
+
+    /**
+     * 🛡️ 瀏覽器健康檢查與自癒機制
+     */
+    async _ensureBrowserHealth() {
+        let isHealthy = true;
+        try {
+            if (!this.browser) return; // 尚未啟動不視為故障，由 sendMessage 的 init() 處理
+            
+            // 1. 檢查連線狀態
+            if (!this.browser.isConnected()) {
+                console.warn("📡 [Brain] 偵測到瀏覽器連線斷開，啟動自癒程序...");
+                isHealthy = false;
+            }
+
+            // 2. 檢查頁面活性 (防止視窗被手動關閉或 Crash)
+            if (isHealthy && this.page) {
+                try {
+                    // 執行一個輕量級的評估，若頁面已關閉或無回應，此處會噴錯
+                    await this.page.evaluate(() => 1);
+                } catch (e) {
+                    console.warn(`⚠️ [Brain] 偵測到偵錯頁面無回應 (${e.message})，啟動重新掛載程序...`);
+                    isHealthy = false;
+                }
+            }
+        } catch (e) {
+            isHealthy = false;
+        }
+
+        if (!isHealthy) {
+            console.warn("🩹 [Brain] 偵測到失效狀態，正在執行物理清理並重新初始化...");
+            // 清理舊實體 (確保清理乾淨，防止殘留 Lock)
+            try { 
+                if (this.browser) {
+                    console.log("🧹 [Brain] 正在強制關閉舊瀏覽器...");
+                    await Promise.race([
+                        this.browser.close(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('CLOSE_TIMEOUT')), 5000))
+                    ]).catch(e => console.warn(`⚠️ [Brain] 關閉舊瀏覽器超時或失敗: ${e.message}`));
+                }
+            } catch (e) {}
+            
+            this.browser = null;
+            this.page = null;
+            this.memoryPage = null;
+            this.cdpSession = null;
+            
+            console.log("🌱 [Brain] 準備執行全新初始化 (init)...");
+            // 重新初始化 (forceReload = true)
+            await this.init(true);
+            console.log("✅ [Brain] 自癒初始化完成。");
         }
     }
 }

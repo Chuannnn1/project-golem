@@ -283,7 +283,7 @@ function getOrCreateGolem() {
             const instance = getOrCreateGolem();
             await ensureCoreServices();
             if (typeof instance.brain._linkDashboard === 'function') {
-                instance.brain._linkDashboard();
+                instance.brain._linkDashboard(instance.autonomy);
             }
 
             // [V9.0.9 Fix]: Verify persona.json to decide actual status
