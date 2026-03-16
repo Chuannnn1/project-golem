@@ -1,338 +1,236 @@
 <div align="center">
+  <img src="assets/logo.png" width="400" alt="Project Golem Logo" />
+  <h1>🤖 Project Golem v9.1</h1>
+  <p><b>Ultimate Chronos + MultiAgent + Social Node Edition</b></p>
 
-# 🤖 Project Golem v9.0
+  <p>
+    <img src="https://img.shields.io/badge/Version-9.1.3-blue?style=for-the-badge" alt="Version">
+    <img src="https://img.shields.io/badge/Engine-Node.js%2020-green?style=for-the-badge&logo=nodedotjs" alt="Engine">
+    <img src="https://img.shields.io/badge/Brain-Web%20Gemini-orange?style=for-the-badge&logo=google" alt="Brain">
+    <img src="https://img.shields.io/badge/Platform-Telegram%20%7C%20Discord-blue?style=for-the-badge" alt="Platform">
+    <img src="https://img.shields.io/badge/License-MIT-red?style=for-the-badge" alt="License">
+  </p>
 
-<img src="assets/logo.png" width="480" alt="Project Golem Logo" />
+  <p>
+    <a href="#-這是什麼">這是什麼？</a> •
+    <a href="#-核心亮點">功能展示</a> •
+    <a href="#-系統架構">系統架構</a> •
+    <a href="#-使用案例與介面展示">實戰截圖</a> •
+    <a href="#-快速開始">快速開始</a>
+  </p>
 
-### 具備長期記憶、自由意志與跨平台能力的自主 AI 代理系統
-
-<p>
-  <img src="https://img.shields.io/badge/Version-9.0.6-blue?style=for-the-badge" alt="Version">
-  <img src="https://img.shields.io/badge/Engine-Node.js%2020-green?style=for-the-badge&logo=nodedotjs" alt="Engine">
-  <img src="https://img.shields.io/badge/Brain-Web%20Gemini-orange?style=for-the-badge&logo=google" alt="Brain">
-  <img src="https://img.shields.io/badge/Platform-Telegram%20%7C%20Discord-blue?style=for-the-badge" alt="Platform">
-  <img src="https://img.shields.io/badge/License-MIT-red?style=for-the-badge" alt="License">
-</p>
-
-[功能一覽](#-核心能力) · [系統架構](#-系統架構) · [記憶系統](#-金字塔式長期記憶) · [快速開始](#-快速開始) · [使用指南](#-使用指南) · [文件](#-完整文件)
-
-<br/>
-
-**繁體中文** | [English](docs/README_EN.md)
-
+  **繁體中文** | [English](README.en.md) | [貢獻指南](CONTRIBUTING.zh-TW.md)
 </div>
+
+---
+
+## 📖 目錄 (Table of Contents)
+- [✨ 這是什麼？](#-這是什麼)
+- [🌟 核心亮點](#-核心亮點)
+- [📸 使用案例與介面展示](#-使用案例與介面展示)
+- [⚡ 快速開始](#-快速開始)
+- [🎮 指令速查](#-指令速查-command-reference)
+- [🏗️ 系統架構](#-系統架構)
+- [🧠 金字塔式長期記憶](#-金字塔式長期記憶-pyramidal-long-term-memory)
+- [📖 完整文件與指南](#-完整文件與指南)
 
 ---
 
 ## ✨ 這是什麼？
 
-**Project Golem** 不是一個普通的聊天機器人。
+**Project Golem** 不是一個普通的聊天機器人。它是一個以 **Web Gemini 的無限上下文**為大腦、以 **Puppeteer** 為雙手的自主 AI 代理系統。
 
-它是一個以 **Web Gemini 的無限上下文**為大腦、以 **Puppeteer** 為雙手的自主 AI 代理人，能夠：
+- 🧠 **記住你** — 金字塔式 5 層記憶壓縮，理論上可保存 **50 年**的對話精華。
+- 🤖 **自主行動** — 當你不在時，它會主動瀏覽新聞、自省思考、發送消息給你。
+- 🎭 **召喚 AI 團隊** — 一個指令生成多個 AI 專家進行圓桌討論，產出共識摘要。
+- 🔧 **動態擴充** — 支援熱載入技能模組 (Skills)，甚至能讓 AI 在沙盒中寫扣自學新技能。
 
-- 🧠 **記住你** — 金字塔式 5 層記憶壓縮，理論上可保存 **50 年**的對話精華
-- 🤖 **自主行動** — 當你不在時，它會主動瀏覽新聞、自省思考、傳送消息給你
-- 🎭 **召喚 AI 團隊** — 一個指令生成多個 AI 專家進行圓桌討論，產出共識摘要
-- 🔧 **自我修復** — DOM Doctor 讓它在 Google 更新 UI 後自動癒合，無需人工介入
-- 📚 **自學新技能** — `/learn` 指令讓 Golem 用算力為自己撰寫新的技能模組
-
-> **Browser-in-the-Loop 架構**：Golem 不依賴官方 API，而是直接操控瀏覽器使用 Web Gemini，享有「無限上下文視窗」的優勢。
+> **Browser-in-the-Loop 架構**：Golem 不依賴限制繁多的官方 API，而是直接操控瀏覽器存取 Web Gemini，享有「無限上下文視窗」與網頁視覺理解的優勢。
 
 ---
 
-## 🚀 核心能力
+## 🌟 核心亮點
 
-<table>
-<tr>
-<td width="50%">
-
-### 🧠 長期記憶金字塔
-每小時日誌 → 每日摘要 → 月度精華 → 年度回顧 → 紀元里程碑，50 年後整個記憶庫只有 **~3 MB**。
-
-### 🎭 互動式多智能體
-一鍵召喚 AI 技術團隊、辯論小組或創意工作坊，多個 AI 角色互相對話、辯論、達成共識。
-
-### ⏰ 時序領主 (Chronos)
-自然語言設定排程：「明天早上 9 點提醒我」、「每週五幫我整理本週摘要」。
-
-</td>
-<td width="50%">
-
-### 🛡️ 自我防護
-Security Manager 攔截高危指令，DOM Doctor 自動修復 Selector，KeyChain 智慧金鑰輪替。
-
-### 🔧 技能膠囊系統
-技能可打包成 Base64 字串跨實例分享，`/learn` 指令讓 AI 自動生成新技能並熱載入。
-
-### 🏝️ 單機架構優化
-專為單機運行的穩定性設計，簡化的配置流程，集中式的記憶管理與權限控制。
-
-</td>
-</tr>
+<table width="100%">
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🧠 金字塔式長期記憶</h3>
+      <p>透過 5 層壓縮機制，確保 Golem 的記憶永不丟失且極度輕量。從每小時日誌到紀元里程碑，50 年記憶僅佔 <b>3MB</b>。</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🎭 互動式多智能體</h3>
+      <p>一鍵召喚專家團隊進行圓桌討論。多智能體之間會針對問題進行辯論、激盪，最後給出高濃度的共識總結。</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🤖 自主行動與觀察</h3>
+      <p>當你不在時，它會主動瀏覽新聞、自省思考、發送消息給你。它具備真正的「自由意志」與排程能力。</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🔧 動態技能擴充</h3>
+      <p>支援熱載入技能模組 (Skills)，甚至能讓 AI 在沙盒中寫扣自學新技能，實現功能的無限擴張。</p>
+    </td>
+  </tr>
 </table>
 
 ---
 
-## 🏗️ 系統架構
+## 📸 使用案例與介面展示
 
-Golem 採用 **Browser-in-the-Loop** 混合架構：
+為了幫助您更好地監控與管理您的 Golem，我們提供了功能完善的 **Web Dashboard**。
 
-```
-Telegram / Discord
-       │
-       ▼
- UniversalContext     ← 平台抽象層（統一 TG/DC 差異）
-       │
-       ▼
-ConversationManager   ← 防抖隊列（1.5s 合併連發訊息）
-       │
-       ▼
-   GolemBrain         ← Puppeteer 操控 Web Gemini
-  (sendMessage)
-       │
-       ▼
-  NeuroShunter        ← 回應分流中樞（解析 Golem Protocol）
-       │
-  ┌────┼──────────────┐
-  ▼    ▼              ▼
-REPLY  MEMORY      ACTION
-回覆   長期記憶    技能/指令/
-用戶   寫入         多代理
-```
+### 🎛️ 戰術控制台 (Dashboard Home)
+*總覽您的高階 AI 代理人狀態、活躍進程與動態行為決策。*
+<img src="assets/1.jpg" width="800" alt="戰術控制台 - 智慧對話解析">
+<img src="assets/2.jpg" width="800" alt="戰術控制台 - 動態行為決策">
+<img src="assets/10.jpg" width="800" alt="戰術控制台 - 效能與資源監控">
 
-### 核心元件
+### 💻 即時終端機對話 (Web Terminal)
+*除了 Telegram / Discord 外，您也可以直接在網頁端與 Golem 進行無延遲的交談，並即時追蹤任務狀態。*
+<img src="assets/3.jpg" width="800" alt="網頁終端 - 跨平台通訊支援">
 
-| 元件 | 說明 |
-|------|------|
-| `GolemBrain` | 封裝 Puppeteer，提供 `sendMessage` / `recall` / `memorize` API |
-| `UniversalContext` | 平台抽象層，讓業務邏輯不感知 Telegram 或 Discord |
-| `ConversationManager` | 防抖隊列 + 觀察者/靜默模式控制 |
-| `NeuroShunter` | 解析 AI 結構化回應，路由到記憶/回覆/技能執行 |
-| `AutonomyManager` | 自由意志引擎：自發聊天、新聞播報、自省 |
-| `ChatLogManager` | 金字塔式 5 層記憶壓縮引擎 |
+### 📚 動態技能管理 (Skill Manager)
+*如同插拔隨身碟般，隨時為您的 Golem 安裝、開啟或關閉各種特殊職能與無縫 API 對接。*
+<img src="assets/4.jpg" width="800" alt="技能管理 - 無縫 API 對接">
+<img src="assets/5.jpg" width="800" alt="技能管理 - 專屬客製化介面">
 
----
+### 👥 人格設定 (Personality Settings)
+*設定 Golem 的基本屬性與行為模式。*
+<img src="assets/6.jpg" width="800" alt="人格設定">
+<img src="assets/7.jpg" width="800" alt="人格市場">
 
-## 🧠 金字塔式長期記憶
+### 🧠 記憶核心 (Memory Core)
+*查看 Golem 的記憶核心。*
+<img src="assets/8.jpg" width="800" alt="記憶核心">
 
-這是 Golem 最獨特的技術能力之一。
-
-```
-Tier 0  每小時原始日誌  →  72 小時後自動壓縮
-   ↓ (Gemini 壓縮 ~1500 字)
-Tier 1  每日摘要        →  90 天後自動壓縮
-   ↓ (Gemini 壓縮 ~3000 字)
-Tier 2  月度精華        →  5 年後自動壓縮
-   ↓ (Gemini 壓縮 ~5000 字)
-Tier 3  年度回顧        →  永久保留
-   ↓ (Gemini 壓縮 ~8000 字)
-Tier 4  紀元里程碑      →  永久保留
-```
-
-**50 年規模比較：**
-
-| 方案 | 檔案數量 | 儲存量 |
-|------|---------|--------|
-| 舊版（無壓縮） | ~18,250 個 | ~500 MB+ |
-| **Golem 金字塔** | **~277 個** | **~3 MB** |
-
-啟動時依序注入：`紀元摘要 → 年度回顧 → 月度精華 → 每日摘要`，Context 預算固定 ~50K tokens，不隨時間膨脹。
-
----
-
-## 🎭 互動式多智能體
-
-```mermaid
-graph LR
-    User["👤 用戶"] -->|"啟動 Tech Team"| Host["🤖 主持人 (GolemBrain)"]
-    Host -->|"Round 1"| A["⚙️ 後端工程師"]
-    Host -->|"Round 1"| B["🎨 前端工程師"]
-    Host -->|"Round 1"| C["📊 PM"]
-    A -->|"Round 2 回應"| B
-    B -->|"Round 2 回應"| C
-    C -->|"Round 2 回應"| A
-    Host -->|"達成共識"| Summary["📋 共識摘要"]
-    Summary --> User
-```
-
-用戶可在任何輪次透過 `@AgentName` 點名特定成員回應，或全體廣播。早期共識偵測可提前結束討論。
+### ⚙️ 系統設定 (Settings)
+*直觀管理安全權限、API Keys 與深度系統整合，免去手動修改設定檔的麻煩。*
+<img src="assets/9.jpg" width="800" alt="系統設定 - 深度系統整合">
+<img src="assets/10.jpg" width="800" alt="系統設定 - 安全與權限管理">
+<img src="assets/11.jpg" width="800" alt="系統設定 - 指令白名單">
 
 ---
 
 ## ⚡ 快速開始
 
 ### 環境需求
-
 - **Node.js** v20+
-- **Google Chrome**（Puppeteer 需要）
-- **Telegram Bot Token**（從 [@BotFather](https://t.me/BotFather) 取得）
+- **Google Chrome** (供 Puppeteer 自動化操控使用)
+- **Telegram/Discord Bot Token** (非必填，若只需本機操作可免)
 
-### 安裝
+### ⚡ 最推薦：一鍵安裝與啟動模式 (Magic Mode)
+我們為初次使用者準備了無腦全自動裝機腳本。
+雙擊專案目錄下的 `Start-Golem.command` (Mac/Linux)，即會自動下載依賴並啟動 Node 伺服器與 Dashboard。
 
+**🔨 CLI 手動模式 (Terminal)**
 ```bash
-# 1. Clone 專案
-git clone https://github.com/Arvincreator/project-golem.git
-cd project-golem
-```
+# 賦予執行權限
+chmod +x setup.sh
 
-**⚡ 最推薦：全自動無痛一鍵安裝與啟動 (Magic Mode)**
-雙擊專案目錄下的 `Start-Golem.command` (Mac/Linux)。
-系統內建**自動化防呆機制**，將會無對話框全自動替您完成：
-1. 自動排除被佔用的通訊埠 (如 3000/3001)
-2. 自動偵測並透過腳本安裝/切換至系統所需的 **Node.js v20** 及 npm
-3. 靜默安裝所有核心依賴與 Web 控制台介面
-4. 完成所有步驟後直接啟動 Golem！
-
-**🔨 進階開發者 (終端機手動操作)**
-```bash
-# 啟動互動式安裝與管理選單
-chmod +x setup.sh && ./setup.sh
-
-# 靜默執行全自動安裝 (等同雙擊 Start-Golem.command 效果)
+# 一鍵自動安裝依賴與解決 Port 衝突
 ./setup.sh --magic
 
-# 略過安裝，直接啟動
+# 直接啟動
 ./setup.sh --start
 ```
 
-### 🩺 環境自我診斷 (Doctor)
 
-如果您在啟動時遇到任何環境問題（如 Node.js 版本過舊、通訊埠被佔用），可以隨時執行診斷工具獲取修復建議：
-```bash
-npm run doctor
-# 或
-./setup.sh --doctor
-```
+### Windows
+> **建議：** 為了獲得最佳的 Linux 環境模擬體驗，強烈建議 Windows 用戶使用 **[Git Bash](https://git-scm.com/downloads)** 來執行腳本。
 
-### 手動 `.env` 設定
-
-```env
-# 必填
-TELEGRAM_TOKEN=你的_Bot_Token
-ADMIN_ID=你的_Telegram_User_ID
-
-# 選填
-DISCORD_TOKEN=你的_Discord_Token
-GOLEM_MODE=SINGLE                 # 強制單機模式
-GOLEM_MEMORY_MODE=browser         # browser / qmd / native
-GEMINI_API_KEYS=key1,key2         # 多組 Key 逗號分隔
-```
+1. 打開 Git Bash。
+2. 切換至專案目錄。
+3. 執行 `./setup.sh --magic` 進行自動化安裝與啟動。
 
 ---
 
-## 🎮 使用指南
-
-### 系統指令
+## 🎮 指令速查 (Command Reference)
 
 | 指令 | 功能 |
 |------|------|
 | `/help` | 查看完整指令說明 |
-| `/new` | 重置對話視窗並重新載入記憶 |
-| `/learn 意圖描述` | 讓 AI 自動生成新技能 |
-| `/skills` | 列出所有已安裝技能 |
-| `/callme 暱稱` | 設定你的稱呼 |
-
-### 自然語言操作（直接說就好）
-
-```
-「明天早上 9 點提醒我開會」
-「召喚技術團隊討論這個架構問題」
-「搜尋今天的科技新聞」
-「幫我分析這份文件」（附上圖片或文件）
-「把這段程式碼存到伺服器上執行」
-```
-
-### 系統設定
-Golem v9.1+ 採用簡化的單機架構。所有的 API Keys 與 機器人 Token 建議直接透過 **Web Dashboard** 的「系統設定」頁面完成，無需手動編輯複雜的 JSON 檔案。
+| `/new` | 重置對話並載入相關記憶 |
+| `/learn <功能>` | 讓 AI 自動學習並生成新技能 |
+| `/skills` | 列出所有已安裝的技能 |
 
 ---
 
-## 🖥️ Web Dashboard
+## 🏗️ 系統架構
 
-```bash
-cd web-dashboard
-npm run dev   # http://localhost:3000
+Golem 採用 **Browser-in-the-Loop** 混合架構，賦予其超越標準 API 限制的靈活性。
+
+```mermaid
+graph TD
+    User["👤 用戶"] -->|"平台抽象層"| UniversalContext
+    UniversalContext -->|"防抖隊列"| ConversationManager
+    ConversationManager -->|"LLM 核心"| GolemBrain
+    GolemBrain -->|"解析協定"| NeuroShunter
+    
+    subgraph Reflex ["神經分流 Reflex"]
+        NeuroShunter -->|"REPLY"| User
+        NeuroShunter -->|"MEMORY"| LongTermMemory["🧠 金字塔記憶"]
+        NeuroShunter -->|"ACTION"| SkillManager["🛠️ 技能膠囊"]
+    end
 ```
 
-<table>
-<tr>
-<td>🎛️ <b>戰術控制台</b><br/>系統狀態總覽</td>
-<td>💻 <b>終端機</b><br/>即時與 Golem 對話</td>
-<td>📚 <b>技能說明書</b><br/>管理 / 開關 / 注入技能</td>
-<td>🧠 <b>記憶核心</b><br/>瀏覽 / 搜尋 / 清除向量記憶</td>
-</tr>
-<tr>
-<td>👥 <b>Agent 會議室</b><br/>互動式多智能體介面</td>
-<td>🏢 <b>自動化中心</b><br/>排程與自省任務管理</td>
-<td>⚙️ <b>系統總表</b><br/>環境設定 / 日誌管理</td>
-<td>🚀 <b>Setup 精靈</b><br/>首次初始化引導</td>
-</tr>
-</table>
+### 🧠 技術深潛
+- **Browser-in-the-Loop**: 與傳統基於 API 的機器人不同，Golem 使用 Puppeteer 在 Web Gemini 上模擬人類行為。這提供了免費訪問 **1M+ Token 無限上下文視窗** 的能力。
+- **Reflex Shunting**: Golem 的大腦產出結構化的 `GOLEM_PROTOCOL` 指令而非純文字。這讓代理人能精準決定何時該說話、何時該記憶、以及何時該執行技能腳本。
 
 ---
 
-## 📂 專案結構
+## 🧠 金字塔式長期記憶 (Pyramidal Long-term Memory)
 
-```
-project-golem/
-├── index.js                  # 主入口：Bot 初始化 / 路由 / 排程器
-├── setup.sh / setup.bat      # 一鍵安裝腳本
-├── docs/                     # 📄 完整技術文件
-├── logs/                     # 系統運作日誌 (SINGLE 模式專用)
-├── src/
-│   ├── core/                 # GolemBrain / NeuroShunter / ConversationManager
-│   ├── managers/             # ChatLogManager / AutonomyManager / SkillManager
-│   ├── memory/               # 向量記憶 Driver (Browser / QMD / Native)
-│   ├── services/             # ProtocolFormatter / DOMDoctor / KeyChain
-│   └── skills/
-│       ├── core/             # 系統內建技能
-│       ├── user/             # 使用者自定義技能
-│       └── lib/              # 技能書 (.md，注入給 Gemini)
-└── web-dashboard/            # Next.js 管理介面
-```
+這是 Golem 最獨特的技術能力，透過多層級壓縮確保記憶永不丟失：
+
+1. **第 0 層 (Tier 0)**: 每小時原始對話日誌。
+2. **第 1 層 (Daily)**: 每日摘要（約 1,500 字）。
+3. **第 2 層 (Monthly)**: 每月亮點。
+4. **第 3 層 (Yearly)**: 年度回顧。
+5. **第 4 層 (Epoch)**: 紀元里程碑。
+
+**50 年存儲對比：**
+* **傳統模式 (無壓縮)**: ~18,250 檔案 / 500 MB+
+* **Golem 金字塔**: **~277 檔案 / 3 MB**
 
 ---
 
-## 📖 完整文件
+---
+
+## 📖 完整文件與指南
+
+為了保持本頁面的簡潔，更深入的技術細節已移至專屬文檔：
 
 | 文件 | 說明 |
 |------|------|
-| [系統架構說明](docs/系統架構說明.md) | 核心元件、訊息流、協議格式 |
-| [記憶系統架構說明](docs/記憶系統架構說明.md) | 金字塔壓縮、Single/Multi 路徑適配 |
-| [開發者實作指南](docs/開發者實作指南.md) | 新增技能、Golem Protocol 格式規範 |
-| [Web Dashboard 使用說明](docs/Web-Dashboard-使用說明.md) | 7 個頁面功能 / Multi-Agent 會議室 |
-| [指令說明一覽](docs/golem指令說明一覽表.md) | 所有 `/command` 速查表 |
-| [取得 Token 教學](docs/如何獲取TG或DC的Token及開啟權限.md) | 取得 TG / DC Bot Token |
+| [🤖 編碼代理指南](AGENTS.md) | **[重要]** 供 AI 助理或開發者參考的程式碼維護與架構規範 |
+| [🧠 記憶系統架構說明](docs/記憶系統架構說明.md) | 金字塔壓縮原理與存放路徑解析 |
+| [🖥️ Web Dashboard 使用說明](docs/Web-Dashboard-使用說明.md) | Web UI 各個分頁的延伸細節 |
+| [🛠️ 開發者實作指南](docs/開發者實作指南.md) | 如何實作新的 Skill 與 Golem Protocol 格式規範 |
+| [🎮 完整指令說明一覽表](docs/golem指令說明一覽表.md) | Telegram / Discord 指令速查 |
+| [🔑 取得機器人 Token 教學](docs/如何獲取TG或DC的Token及開啟權限.md) | 如何設定你的外部通訊平台 |
 
 ---
 
-## 📈 Star History
+## ☕ 支援專案與社群
 
-<div align="center">
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Arvincreator/project-golem&theme=dark)](https://star-history.com/#Arvincreator/project-golem&Date)
-
-</div>
-
----
-
-## ☕ 支持專案
-
-如果 Golem 對你有幫助，歡迎請作者喝杯咖啡！
+如果 Golem 對你有幫助，歡迎賞顆星星 ⭐️，或請作者喝杯咖啡！
 
 <a href="https://www.buymeacoffee.com/arvincreator" target="_blank">
   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50">
 </a>
 
-[Line 社群：Project-Golem 本機 AI 代理人交流群](https://line.me/ti/g2/wqhJdXFKfarYxBTv34waWRpY_EXSfuYTbWc4OA?utm_source=invitation&utm_medium=link_copy&utm_campaign=default)
+[💬 加入 Line 社群：Project Golem AI 系統代理群](https://line.me/ti/g2/wqhJdXFKfarYxBTv34waWRpY_EXSfuYTbWc4OA?utm_source=invitation&utm_medium=link_copy&utm_campaign=default)  
+[👾 加入 Discord 社群：Project Golem 官方頻道](https://discord.gg/bC6jtFQra)
 
 ---
 
 ## ⚠️ 免責聲明
 
-1. **安全風險**：請勿在生產環境給予 root/admin 權限。
-2. **帳號安全**：`golem_memory/` 資料夾含 Session Cookie，請妥善保管。
-3. 使用者需自行承擔操作產生的所有風險，開發者不提供任何法律責任。
+1. **安全風險**：請絕對避免在生產環境中以 root/admin 身份運行。
+2. **隱私提醒**：根目錄的 `golem_memory/` 資料夾中包含您的 Google 登入 Cookie 會話，請務必妥善保管勿外洩。
+3. *使用者需自行承擔本自動化腳本操作所產生的任何風險，開發者不提供任何擔保或法律責任。*
 
 ---
 

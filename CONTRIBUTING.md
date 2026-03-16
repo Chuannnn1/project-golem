@@ -1,5 +1,7 @@
 # Contributing to Project Golem
 
+[繁體中文](CONTRIBUTING.zh-TW.md) | **English**
+
 Thank you for your interest in contributing to Project Golem! This guide will help you get started.
 
 ## Table of Contents
