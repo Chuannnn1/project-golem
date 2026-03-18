@@ -268,7 +268,7 @@ class PageInteractor {
      */
     async _moveWindowToBottom() {
         // ✨ [Headless 優化] 若為無頭模式，不需要移動視窗
-        if (process.env.PUPPETEER_HEADLESS === 'true') return;
+        if (process.env.PLAYWRIGHT_HEADLESS === 'true') return;
 
         try {
             console.log("⚓ [PageInteractor] 正在將 Chrome 視窗自動移動至隱藏位置...");

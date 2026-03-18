@@ -46,8 +46,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Skip downloading Chrome and use installed Chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/bin/chromium \
     NEXT_TELEMETRY_DISABLED=1
 
 # --- Layer caching: install deps before copying source ---

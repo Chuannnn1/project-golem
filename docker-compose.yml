@@ -16,9 +16,10 @@ services:
     environment:
       - ENABLE_WEB_DASHBOARD=true
       - NODE_ENV=production
-      - PUPPETEER_HEADLESS=true
+      - PLAYWRIGHT_HEADLESS=true
+      - DASHBOARD_PORT=${DASHBOARD_PORT}
       # Optional: Control Host Chrome (requires start-host-chrome.sh)
-      - PUPPETEER_REMOTE_DEBUGGING_PORT=${PUPPETEER_REMOTE_DEBUGGING_PORT}
+      - PLAYWRIGHT_REMOTE_DEBUGGING_PORT=${PLAYWRIGHT_REMOTE_DEBUGGING_PORT}
       # Host project path for Remote Chrome to resolve file:// URLs correctly
       - HOST_PROJECT_DIR=${PWD}
     # TTY and Stdin are useful for maintaining the process if it expects interaction

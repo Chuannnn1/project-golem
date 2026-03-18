@@ -27,7 +27,7 @@ launch_docker() {
 
     mkdir -p "$SCRIPT_DIR/golem_memory" "$SCRIPT_DIR/logs"
 
-    if grep -q "PUPPETEER_REMOTE_DEBUGGING_PORT" "$DOT_ENV_PATH"; then
+    if grep -q "PLAYWRIGHT_REMOTE_DEBUGGING_PORT" "$DOT_ENV_PATH"; then
         echo -e "  ${CYAN}🔌 偵測到遠端除錯設定，正在啟動主機 Chrome...${NC}"
         "$SCRIPT_DIR/scripts/start-host-chrome.sh" &
         HOST_CHROME_PID=$!

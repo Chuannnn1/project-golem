@@ -214,7 +214,7 @@ step_install_core() {
             # Linux ARM64 上的 Puppeteer 預設下載 amd64 Chromium 會失敗
             ui_warn "Linux ARM64 環境建議使用系統 Chromium 以確保相容性。"
             echo -e "  ${DIM}提示: sudo apt install chromium-browser -y${NC}"
-            export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+            export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
         fi
     fi
 

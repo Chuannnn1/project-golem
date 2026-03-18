@@ -56,11 +56,11 @@ describe('PageInteractor Improvements', () => {
     });
 
     test('_moveWindowToBottom should skip in headless mode', async () => {
-        process.env.PUPPETEER_HEADLESS = 'true';
+        process.env.PLAYWRIGHT_HEADLESS = 'true';
         await interactor._moveWindowToBottom();
         expect(mockPage.context).not.toHaveBeenCalled();
 
-        delete process.env.PUPPETEER_HEADLESS;
+        delete process.env.PLAYWRIGHT_HEADLESS;
         await interactor._moveWindowToBottom();
         expect(mockPage.context).toHaveBeenCalled();
     });

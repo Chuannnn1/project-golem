@@ -20,7 +20,7 @@ class BrowserLauncher {
      */
     static async launch({ userDataDir, headless }) {
         const isDocker = fs.existsSync('/.dockerenv');
-        const remoteDebugPort = process.env.PUPPETEER_REMOTE_DEBUGGING_PORT;
+        const remoteDebugPort = process.env.PLAYWRIGHT_REMOTE_DEBUGGING_PORT;
 
         if (isDocker && remoteDebugPort) {
             return BrowserLauncher.connectRemote('host.docker.internal', remoteDebugPort);

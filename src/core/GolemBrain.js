@@ -76,7 +76,7 @@ class GolemBrain {
 
             this.context = await BrowserLauncher.launch({
                 userDataDir: this.userDataDir,
-                headless: process.env.PUPPETEER_HEADLESS,
+                headless: process.env.PLAYWRIGHT_HEADLESS,
             });
         }
 
