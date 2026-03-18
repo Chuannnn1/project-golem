@@ -18,20 +18,25 @@ class ConversationManager {
         this.DEBOUNCE_MS = 1500;
     }
 
-    async enqueue(ctx, text, options = { isPriority: false, bypassDebounce: false }) {
+    async enqueue(ctx, text, options = { isPriority: false, bypassDebounce: false, attachment: null }) {
         const chatId = ctx.chatId;
 
         // 🚨 Highest Privilege: priority tasks bypass user buffers completely and inject straight into queue
         if (options.bypassDebounce) {
             console.log(`⚡ [Dialogue Queue] 高優先級請求繞過防抖機制 (${chatId}): "${text.substring(0, 15)}..."`);
-            this._commitDirectly(ctx, text, options.isPriority);
+            this._commitDirectly(ctx, text, options.isPriority, options.attachment);
             return;
         }
 
-        let userState = this.userBuffers.get(chatId) || { text: "", timer: null, ctx: ctx };
+        let userState = this.userBuffers.get(chatId) || { text: "", timer: null, ctx: ctx, attachments: [] };
         userState.text = userState.text ? `${userState.text}\n${text}` : text;
         userState.ctx = ctx;
-        console.log(`⏳ [Dialogue Queue] 收到對話 (${chatId}): "${text.substring(0, 15)}..."`);
+        if (options.attachment) {
+            userState.attachments = userState.attachments || [];
+            userState.attachments.push(options.attachment);
+        }
+
+        console.log(`⏳ [Dialogue Queue] 收到對話 (${chatId}): "${text.substring(0, 15)}..."${options.attachment ? ' 📎 含有附件' : ''}`);
         if (userState.timer) clearTimeout(userState.timer);
         userState.timer = setTimeout(() => {
             this._commitToQueue(chatId);
@@ -39,7 +44,7 @@ class ConversationManager {
         this.userBuffers.set(chatId, userState);
     }
 
-    _commitDirectly(ctx, text, isPriority) {
+    _commitDirectly(ctx, text, isPriority, attachment = null) {
         // ✨ [v9.1 插隊系統：大腦層擴充]
         // 如果不是特急件 (isPriority=false)，且隊列中已有任務 (長度 >= 1)，則觸發詢問
         if (!isPriority && this.queue.length >= 1) {
@@ -50,6 +55,7 @@ class ConversationManager {
                 type: 'DIALOGUE_QUEUE_APPROVAL',
                 ctx,
                 text,
+                attachment,
                 timestamp: Date.now()
             });
 
@@ -88,7 +94,7 @@ class ConversationManager {
                         } catch (e) { console.warn("無法更新 Dialogue Timeout 訊息:", e.message); }
 
                         // 超時後強制以一般優先級入隊
-                        this._actualCommit(ctx, text, false);
+                        this._actualCommit(ctx, text, false, attachment);
                     }
                 }, 30000);
             });
@@ -96,15 +102,15 @@ class ConversationManager {
         }
 
         // 正常入隊
-        this._actualCommit(ctx, text, isPriority);
+        this._actualCommit(ctx, text, isPriority, attachment);
     }
 
-    _actualCommit(ctx, text, isPriority) {
+    _actualCommit(ctx, text, isPriority, attachment = null) {
         console.log(`📦 [Dialogue Queue] 加入隊列 (Direct) ${isPriority ? '[💥VIP 插隊中]' : ''} - 準備交由大腦處理`);
         if (isPriority) {
-            this.queue.unshift({ ctx, text }); // Priority goes to the front of the line
+            this.queue.unshift({ ctx, text, attachment }); // Priority goes to the front of the line
         } else {
-            this.queue.push({ ctx, text });
+            this.queue.push({ ctx, text, attachment });
         }
         this._processQueue();
     }
@@ -114,8 +120,9 @@ class ConversationManager {
         if (!userState || !userState.text) return;
         const fullText = userState.text;
         const currentCtx = userState.ctx;
+        const attachment = userState.attachments && userState.attachments.length > 0 ? userState.attachments[0] : null; // 目前僅支援單張，取第一張
         this.userBuffers.delete(chatId);
-        this._commitDirectly(currentCtx, fullText, false);
+        this._commitDirectly(currentCtx, fullText, false, attachment);
     }
 
     async _processQueue() {
@@ -124,7 +131,7 @@ class ConversationManager {
         const task = this.queue.shift();
         try {
             console.log(`🚀 [Dialogue Queue:${this.golemId}] 從隊列取出，開始處理對話...`);
-            console.log(`🗣️ [User->${this.golemId}] 說: ${task.text}`);
+            console.log(`🗣️ [User->${this.golemId}] 說: ${task.text}${task.attachment ? ' 📎 含有附件' : ''}`, { attachment: task.attachment });
 
             // ✨ [Log] 記錄用戶輸入 (Fix missing user logs)
             this.brain._appendChatLog({
@@ -133,7 +140,8 @@ class ConversationManager {
                 content: task.text,
                 type: 'user',
                 role: 'User',
-                isSystem: false
+                isSystem: false,
+                attachment: task.attachment
             });
 
             await task.ctx.sendTyping();
@@ -161,7 +169,8 @@ class ConversationManager {
 
             const raw = await this.brain.sendMessage(finalInput, false, {
                 isObserver: this.observerMode,
-                interventionLevel: this.interventionLevel
+                interventionLevel: this.interventionLevel,
+                attachment: task.attachment
             });
             await this.NeuroShunter.dispatch(task.ctx, raw, this.brain, this.controller, { suppressReply: shouldSuppressReply });
         } catch (e) {

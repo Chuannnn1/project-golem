@@ -61,7 +61,7 @@ class DashboardPlugin {
     _handleLog(args) {
         if (this.manager.state.isDetached) return;
 
-        const { type, msg, cleanMsg, raw } = this.manager.dispatchLog(args);
+        const { type, msg, cleanMsg, raw, attachment } = this.manager.dispatchLog(args);
         const time = new Date().toLocaleTimeString();
 
         // 更新 UI (使用與原始代碼一致的著色標籤)
@@ -78,7 +78,7 @@ class DashboardPlugin {
 
         // Web 廣播
         if (this.webServer) {
-            this.webServer.broadcastLog({ time, msg: cleanMsg, type, raw });
+            this.webServer.broadcastLog({ time, msg: cleanMsg, type, raw, attachment });
             this.webServer.broadcastState({
                 queueCount: this.manager.state.queueCount,
                 lastSchedule: this.manager.state.lastSchedule

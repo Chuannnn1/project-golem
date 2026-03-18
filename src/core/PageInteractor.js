@@ -35,7 +35,7 @@ class PageInteractor {
     /**
      * 主互動流程：輸入文字 → 點擊發送 → 等待回應 → 🌟自動點擊按鈕 (智慧判斷)
      */
-    async interact(payload, selectors, isSystem, startTag, endTag, retryCount = 0) {
+    async interact(payload, selectors, isSystem, startTag, endTag, retryCount = 0, attachment = null) {
         if (retryCount > LIMITS.MAX_INTERACT_RETRY) {
             throw new Error("🔥 DOM Doctor 修復失敗，請檢查網路或 HTML 結構大幅變更。");
         }
@@ -53,6 +53,11 @@ class PageInteractor {
 
             // 1. 捕獲基準文字
             const baseline = await this._captureBaseline(selectors.response);
+
+            // 1.5 處理附件貼入 (如果有的話) - 模擬人類 Ctrl+V / Cmd+V
+            if (attachment && attachment.path) {
+                await this._attachFile(selectors.input, attachment.path, attachment.mimeType);
+            }
 
             // 2. 輸入文字 (使用無敵定位法 + 斜線指令標籤召喚術)
             await this._typeInput(selectors.input, payload);
@@ -97,7 +102,7 @@ class PageInteractor {
                 console.log('🩺 [Brain] 啟動 DOM Doctor 進行 Response 診斷...');
                 const healed = await this._healSelector('response', selectors);
                 if (healed) {
-                    return this.interact(payload, selectors, isSystem, startTag, endTag, retryCount + 1);
+                    return this.interact(payload, selectors, isSystem, startTag, endTag, retryCount + 1, attachment);
                 }
             }
             throw e;
@@ -349,6 +354,76 @@ class PageInteractor {
     }
 
     /**
+     * 📋 模擬人類貼上附件 (Clipboard Paste Technique)
+     * @param {string} targetSelector - 貼上的目標輸入框
+     * @param {string} filePath - 本地檔案路徑
+     * @param {string} mimeType - 檔案類型
+     */
+    async _attachFile(targetSelector, filePath, mimeType) {
+        console.log(`📋 [PageInteractor] 正在讀取並模擬貼上附件: ${filePath} (${mimeType || 'unknown'})`);
+        
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            if (!fs.existsSync(filePath)) {
+                throw new Error(`找不到檔案: ${filePath}`);
+            }
+
+            const buffer = fs.readFileSync(filePath);
+            const fileName = path.basename(filePath);
+            
+            // 如果沒帶 mimeType，則根據副檔名做最後保險 (Gemini 對文件的 mimetype 比較敏感)
+            let resolvedMimeType = mimeType;
+            if (!resolvedMimeType) {
+                const ext = path.extname(fileName).toLowerCase();
+                const mimeMap = {
+                    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif',
+                    '.pdf': 'application/pdf', '.txt': 'text/plain', '.md': 'text/markdown',
+                    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    '.js': 'text/javascript', '.py': 'text/x-python', '.json': 'application/json'
+                };
+                resolvedMimeType = mimeMap[ext] || 'application/octet-stream';
+            }
+            
+            // 🚀 將 Buffer 轉換為 Base64 以便傳入 evaluate
+            const base64 = buffer.toString('base64');
+
+            await this.page.evaluate(async ({ s, b64, name, type }) => {
+                const el = document.querySelector(s);
+                if (!el) throw new Error("找不到貼上目標選取器");
+
+                // 1. 將 Base64 轉回 Blob & File
+                const byteCharacters = atob(b64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type });
+                const file = new File([blob], name, { type });
+
+                // 2. 建立 DataTransfer 並模擬貼上事件
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+
+                const event = new ClipboardEvent('paste', {
+                    clipboardData: dataTransfer,
+                    bubbles: true,
+                    cancelable: true
+                });
+
+                el.focus();
+                el.dispatchEvent(event);
+            }, { s: targetSelector, b64: base64, name: fileName, type: resolvedMimeType });
+
+            console.log(`✅ [PageInteractor] 附件 [${fileName}] 已模擬貼入，等待 UI 反映...`);
+            await new Promise(r => setTimeout(r, 1500)); // 等待預覽圖/檔案圖示出現
+        } catch (e) {
+            console.error(`❌ [PageInteractor] 附件貼上失敗: ${e.message}`);
+        }
+    }
+
+    /**
      * 🛡️ 頁面空閒檢查術：確保沒有正在生成的訊息或遮罩
      */
     async _waitForReady(sendSelector) {
@@ -385,6 +460,51 @@ class PageInteractor {
             await new Promise(r => setTimeout(r, 1000));
         }
         console.warn("⚠️ [PageInteractor] 頁面忙碌檢查超時，將嘗試直接發送。");
+    }
+
+    /**
+     * 處理圖片上傳
+     * @param {string} uploadSelector 
+     * @param {string} filePath 
+     */
+    async _handleUpload(uploadSelector, filePath) {
+        console.log(`📸 [PageInteractor] 正在嘗試上傳圖片: ${filePath}`);
+        
+        try {
+            // 🚀 尋找隱藏的 file input
+            let fileInput = await this.page.$('input[type="file"]');
+            
+            if (!fileInput) {
+                console.log("🚑 找不到標準 input[type='file']，嘗試點擊上傳按鈕啟動元件...");
+                const uploadBtn = await this.page.$(uploadSelector);
+                if (uploadBtn) {
+                    await uploadBtn.click();
+                    await new Promise(r => setTimeout(r, 1000));
+                    fileInput = await this.page.$('input[type="file"]');
+                }
+            }
+
+            if (!fileInput) {
+                throw new Error("找不到檔案上傳元件 (input[type='file'])");
+            }
+
+            // 📤 執行上傳
+            await fileInput.setInputFiles(filePath);
+            console.log("✅ [PageInteractor] 檔案已選擇，等待上傳預覽...");
+
+            // ⏳ 等待預覽圖出現 (Gemini 通常會顯示一個縮圖或刪除按鈕)
+            await this.page.waitForSelector('button[aria-label*="移除"], button[aria-label*="Remove"], .thumbnail, mat-chip', {
+                state: 'attached',
+                timeout: 10000
+            }).catch(() => {
+                console.warn("⚠️ [PageInteractor] 等待上傳預覽超時，將嘗試繼續流程。");
+            });
+
+            await new Promise(r => setTimeout(r, 1000));
+        } catch (e) {
+            console.error(`❌ [PageInteractor] 圖片上傳失敗: ${e.message}`);
+            // 不要拋出錯誤，讓流程嘗試繼續 (可能有文字訊息)
+        }
     }
 
     async _healSelector(type, selectors) {

@@ -80,3 +80,5 @@ backups/
 golems.json
 moltbot_auth.json
 .golem.pid
+profiles
+data/temp_uploads

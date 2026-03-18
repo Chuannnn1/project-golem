@@ -257,6 +257,8 @@ class GolemBrain {
         try { await this.page.bringToFront(); } catch (e) { }
         await this.setupCDP();
 
+        const attachment = options.attachment || null;
+
         // ── [v9.1] Slash Command Interception ──
         if (text.startsWith('/') || text.startsWith('GOLEM_SKILL::')) {
             const commandResult = await NodeRouter.handle({ text, isAdmin: true }, this);
@@ -272,13 +274,13 @@ class GolemBrain {
         const endTag = ProtocolFormatter.buildEndTag(reqId);
         const payload = ProtocolFormatter.buildEnvelope(text, reqId, options);
 
-        console.log(`📡 [Brain] 發送訊號: ${reqId} (含每回合強制洗腦引擎)`);
+        console.log(`📡 [Brain] 發送訊號: ${reqId} (含每回合強制洗腦引擎)${attachment ? ' 📎 含有附件' : ''}`);
 
         const interactor = new PageInteractor(this.page, this.doctor);
 
         try {
             return await interactor.interact(
-                payload, this.selectors, isSystem, startTag, endTag
+                payload, this.selectors, isSystem, startTag, endTag, 0, attachment
             );
         } catch (e) {
             // 處理 selector 修復觸發的重試
@@ -287,7 +289,7 @@ class GolemBrain {
                 this.selectors[type] = newSelector;
                 this.doctor.saveSelectors(this.selectors);
                 return interactor.interact(
-                    payload, this.selectors, isSystem, startTag, endTag, 1
+                    payload, this.selectors, isSystem, startTag, endTag, 1, attachment
                 );
             }
             throw e;

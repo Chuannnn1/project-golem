@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useGolem } from "@/components/GolemContext";
 import { socket } from "@/lib/socket";
-import { User, Bot, Send } from "lucide-react";
+import { User, Bot, Send, Image as ImageIcon, X, FileText, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Typewriter } from "@/components/Typewriter";
 import ReactMarkdown from "react-markdown";
@@ -18,6 +18,10 @@ interface ChatMessage {
     actionData?: any;
     isHistory?: boolean;
     isThinking?: boolean;
+    attachment?: {
+        url: string;
+        mimeType: string;
+    };
 }
 
 export default function DirectChatPage() {
@@ -26,12 +30,11 @@ export default function DirectChatPage() {
     const [completedTypingMsgs, setCompletedTypingMsgs] = useState<Set<string>>(new Set());
     const [input, setInput] = useState("");
     const [isSending, setIsSending] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<{ name: string, base64: string, type: string } | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // We can optionally fetch logs history here later if needed
-        // For now let's just listen to live socket events.
-
         socket.on("log", (data: any) => {
             const isThinkingMessage = data.type === 'thinking';
 
@@ -54,8 +57,6 @@ export default function DirectChatPage() {
                 }
 
                 setMessages((prev) => {
-                    // ── [v9.1.10] 思考中訊息管理 ──
-                    // 如果新的資料是正式回覆，則先移除該 Golem 舊有的「思考中」訊息
                     let filtered = prev;
                     if (!isThinkingMessage && (sender !== 'User' && sender !== 'WebUser')) {
                         filtered = prev.filter(m => !(m.isThinking && m.sender === sender));
@@ -68,7 +69,8 @@ export default function DirectChatPage() {
                         timestamp: data.time || new Date().toLocaleTimeString(),
                         isSystem,
                         actionData: data.actionData,
-                        isThinking: isThinkingMessage
+                        isThinking: isThinkingMessage,
+                        attachment: data.attachment
                     }];
                 });
             }
@@ -79,7 +81,6 @@ export default function DirectChatPage() {
         };
     }, []);
 
-    // ── [v9.1.9] Fetch Chat History on mount or active Golem change ──
     useEffect(() => {
         if (!activeGolem) return;
 
@@ -136,15 +137,11 @@ export default function DirectChatPage() {
         });
     };
 
-    // Calculate which messages are allowed to type/show
     const isMessageRendered = (index: number) => {
-        // A message is rendered if it's the first message, OR 
-        // if user message, it's always rendered immediately,
-        // if system message, it renders if the previous message has finished typing.
         for (let i = 0; i < index; i++) {
             const prevMsg = messages[i];
             if (prevMsg.isSystem && !completedTypingMsgs.has(prevMsg.id)) {
-                return false; // A previous system message is still typing
+                return false;
             }
         }
         return true;
@@ -166,18 +163,64 @@ export default function DirectChatPage() {
         }
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // 不再限制檔案類型，支援所有 Gemini 支援的格式
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setSelectedFile({
+                name: file.name,
+                base64: (event.target?.result as string).split(',')[1],
+                type: file.type
+            });
+        };
+        reader.readAsDataURL(file);
+        
+        // Reset input value to allow selecting same file again
+        e.target.value = '';
+    };
+
     const handleSend = async () => {
-        if (!input.trim() || !activeGolem) return;
+        if ((!input.trim() && !selectedFile) || !activeGolem) return;
 
         const val = input.trim();
         setInput("");
         setIsSending(true);
 
         try {
+            let attachmentInfo = null;
+            
+            if (selectedFile) {
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileName: selectedFile.name,
+                        base64Data: selectedFile.base64
+                    })
+                });
+                const uploadData = await uploadRes.json();
+                if (uploadData.success) {
+                    attachmentInfo = {
+                        path: uploadData.path,
+                        url: uploadData.url,
+                        mimeType: selectedFile.type
+                    };
+                }
+                setSelectedFile(null);
+            }
+
             await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ golemId: activeGolem, message: val })
+                body: JSON.stringify({ 
+                    golemId: activeGolem, 
+                    message: val,
+                    attachment: attachmentInfo
+                })
             });
         } catch (e) {
             console.error("Failed to send message:", e);
@@ -243,6 +286,26 @@ export default function DirectChatPage() {
                                                         : "bg-primary/10 text-foreground font-medium border border-primary/20 rounded-tl-none shadow-sm"
                                         )}
                                     >
+                                        {msg.attachment && (
+                                            <div className="mb-2">
+                                                {(msg.attachment.mimeType || "").startsWith('image/') ? (
+                                                    <img 
+                                                        src={msg.attachment.url} 
+                                                        alt="attachment" 
+                                                        className="max-w-full max-h-64 rounded-lg border border-border shadow-sm cursor-zoom-in hover:scale-[1.01] transition-transform"
+                                                        onClick={() => window.open(msg.attachment?.url, '_blank')}
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg border border-border w-fit">
+                                                        <FileText size={20} className="text-primary" />
+                                                        <div className="overflow-hidden">
+                                                            <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{msg.attachment.url.split('/').pop()}</p>
+                                                            <p className="text-[10px] text-primary/60 font-medium">文件附件</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         {msg.isThinking ? "思考中..." : (msg.isSystem && !msg.isHistory ?
                                             <Typewriter content={msg.content.replace(/\n{2,}/g, '\n\n').trim()} onComplete={() => handleTypingComplete(msg.id)} />
                                             : (msg.isSystem ?
@@ -287,34 +350,79 @@ export default function DirectChatPage() {
 
                 {/* Input area */}
                 <div className="p-3 border-t border-border bg-card/50">
-                    <div className="relative flex items-center">
-                        <textarea
-                            className="flex-1 max-h-32 min-h-[44px] bg-secondary/50 border border-border rounded-lg px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none transition-all"
-                            placeholder={activeGolem ? `傳送訊息給 ${activeGolem}...` : "請先選擇一個 Golem..."}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                            disabled={!activeGolem || isSending}
-                            rows={1}
-                            style={{ height: "auto" }}
+                    {/* Selected file preview */}
+                    {selectedFile && (
+                        <div className="mb-3 flex items-center p-2 bg-secondary/50 border border-border rounded-lg relative group w-fit">
+                            {selectedFile.type.startsWith('image/') ? (
+                                <img 
+                                    src={`data:${selectedFile.type};base64,${selectedFile.base64}`} 
+                                    alt="preview" 
+                                    className="h-16 w-16 object-cover rounded border border-border"
+                                />
+                            ) : (
+                                <div className="h-16 w-16 flex items-center justify-center bg-primary/10 rounded border border-border text-primary">
+                                    <FileText size={32} />
+                                </div>
+                            )}
+                            <button 
+                                onClick={() => setSelectedFile(null)}
+                                className="absolute -top-2 -right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                            >
+                                <X size={12} />
+                            </button>
+                            <div className="ml-3 pr-2">
+                                <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{selectedFile.name}</p>
+                                <p className="text-[10px] text-primary/60 font-medium">檔案已就緒</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="relative flex items-center gap-2">
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleFileSelect} 
+                            accept="*/*" 
+                            className="hidden" 
                         />
                         <button
-                            onClick={handleSend}
-                            disabled={!activeGolem || !input.trim() || isSending}
-                            className={cn(
-                                "absolute right-2 p-2 rounded-md transition-all flex items-center justify-center",
-                                (!activeGolem || !input.trim() || isSending)
-                                    ? "text-gray-600 bg-transparent"
-                                    : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
-                            )}
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={!activeGolem || isSending}
+                            className="p-2.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground hover:text-primary hover:bg-secondary transition-all"
+                            title="上傳附件"
                         >
-                            <Send size={18} />
+                            <Paperclip size={20} />
                         </button>
+                        
+                        <div className="relative flex-1 flex items-center">
+                            <textarea
+                                className="flex-1 max-h-32 min-h-[44px] bg-secondary/50 border border-border rounded-lg px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 resize-none transition-all"
+                                placeholder={activeGolem ? `傳送訊息給 ${activeGolem}...` : "請先選擇一個 Golem..."}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                disabled={!activeGolem || isSending}
+                                rows={1}
+                                style={{ height: "auto" }}
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={!activeGolem || (!input.trim() && !selectedFile) || isSending}
+                                className={cn(
+                                    "absolute right-2 p-2 rounded-md transition-all flex items-center justify-center",
+                                    (!activeGolem || (!input.trim() && !selectedFile) || isSending)
+                                        ? "text-gray-600 bg-transparent"
+                                        : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
+                                )}
+                            >
+                                <Send size={18} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

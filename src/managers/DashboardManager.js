@@ -20,15 +20,24 @@ class DashboardManager {
      * 解析日誌內容並決定分流類型
      */
     dispatchLog(args) {
+        let attachment = null;
+        // 🚀 [v9.1.10] 提取附加檔案 Metadata
+        const lastArg = args[args.length - 1];
+        if (typeof lastArg === 'object' && lastArg !== null && lastArg.attachment) {
+            attachment = lastArg.attachment;
+        }
+
         const util = require('util');
         const msg = args.map(a => {
             if (a instanceof Error) return `${a.name}: ${a.message}\n${a.stack}`;
             if (typeof a === 'object' && a !== null) {
+                // 如果是 metadata 物件且裡面有 attachment，在字串化日誌中可略過或簡化
+                if (a.attachment) return ''; 
                 if (a.stack || a.message) return `${a.name || 'Error'}: ${a.message || ''}\n${a.stack || ''}`;
                 return util.inspect(a, { depth: 1, colors: false });
             }
             return String(a);
-        }).join(' ');
+        }).filter(s => s !== '').join(' ');
         const cleanMsg = msg.replace(/\u001b\[.*?m/g, '').replace(/\{.*?\}/g, '');
 
         // 分流邏輯 - 根據日誌關鍵字決定顯示區域

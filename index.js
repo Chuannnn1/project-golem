@@ -5,6 +5,7 @@
  */
 const fs_sync = require('fs');
 const path_sync = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 // ── 首次啟動自動初始化 .env ────────────────────────────────────────────────
 const envPath = path_sync.resolve(__dirname, '.env');
@@ -61,9 +62,38 @@ const NodeRouter = require('./src/core/NodeRouter');
 const UniversalContext = require('./src/core/UniversalContext');
 const OpticNerve = require('./src/services/OpticNerve');
 const SystemUpgrader = require('./src/managers/SystemUpgrader');
+const https = require('https');
 const InteractiveMultiAgent = require('./src/core/InteractiveMultiAgent');
 const introspection = require('./src/services/Introspection');
 const ActionQueue = require('./src/core/ActionQueue'); // ✨ [v9.1] Dual-Queue Architecture
+
+/**
+ * 📥 下載檔案工具 (用於 Telegram/Discord 圖片轉原生附件)
+ */
+async function downloadFile(url, dest) {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.dirname(dest);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            if (res.statusCode !== 200) {
+                reject(new Error(`下載失敗，狀態碼: ${res.statusCode}`));
+                return;
+            }
+            const fileStream = fs.createWriteStream(dest);
+            res.pipe(fileStream);
+            fileStream.on('finish', () => {
+                fileStream.close();
+                resolve(dest);
+            });
+            fileStream.on('error', (err) => {
+                fs.unlink(dest, () => reject(err));
+            });
+        }).on('error', reject);
+    });
+}
 
 // 🎯 v9.1.5 解耦：不再於啟動時遍歷配置建立 Bot 與實體
 // TelegramBot 與 Golem 實體將由 Web Dashboard 透過 golemFactory 動態建立
@@ -484,21 +514,14 @@ async function handleUnifiedMessage(ctx, forceTargetId = null) {
         const isEnable = lowerRaw.startsWith('/enable_observer');
         const args = ctx.text.trim().split(/\s+/);
         const targetBotTag = args[1] || "";
-        const targetBotUsername = targetBotTag.startsWith('@') ? targetBotTag.substring(1).toLowerCase() : targetBotTag.toLowerCase();
+                const targetBotUsername = targetBotTag.startsWith('@') ? targetBotTag.substring(1) : targetBotTag;
+        if (targetBotUsername && targetBotUsername !== ctx.instance.username) return;
 
-        if (!targetBotTag) {
-            const currentBotUsername = ctx.instance.username ? `@${ctx.instance.username}` : `@${targetId}`;
-            await ctx.reply(`ℹ️ 請指定目標 Bot ID，例如：\n \`${isEnable ? '/enable_observer' : '/disable_observer'} ${currentBotUsername}\``);
-            return;
-        }
-
-        if (ctx.instance.username && targetBotUsername !== ctx.instance.username.toLowerCase()) return;
-        else if (!ctx.instance.username && targetBotUsername !== targetId.toLowerCase()) return;
-
-        convoManager.observerMode = isEnable;
-        if (isEnable) convoManager.silentMode = false; // 開啟觀察者時關閉全靜默
-
+        const { brain, convoManager } = getOrCreateGolem();
         const displayName = ctx.instance.username ? `@${ctx.instance.username}` : `[Golem]`;
+        if (isEnable) convoManager.observerMode = true;
+        else convoManager.observerMode = false;
+
         if (isEnable) {
             await ctx.reply(`👁️ ${displayName} 已進入「觀察者模式」。\n我會安靜地同步所有對話上下文，但預設不發言。`);
         } else {
@@ -548,22 +571,65 @@ async function handleUnifiedMessage(ctx, forceTargetId = null) {
         }
 
         if (attachment) {
-            await ctx.reply("👁️ 正在透過 OpticNerve 分析檔案...");
-            const apiKey = await brain.doctor.keyChain.getKey();
-            if (apiKey) {
-                const analysis = await OpticNerve.analyze(attachment.url, attachment.mimeType, apiKey);
-                finalInput = `${senderPrefix}【系統通知：視覺訊號】\n檔案類型：${attachment.mimeType}\n分析報告：\n${analysis}\n使用者訊息：${ctx.text || ""}\n請根據分析報告回應。`;
-            } else {
-                await ctx.reply("⚠️ 視覺系統暫時過熱 (API Rate Limit)，無法分析圖片，將僅處理文字訊息。");
+            // 🚀 [v9.1.5] 如果附件來自 Telegram/Discord (有 URL 但非 Native)，嘗試下載並轉化為原生附件
+            // 現在不限圖片，支援所有 Gemini 支援的檔案類型
+            if (!attachment.isNative && attachment.url) {
+                try {
+                    console.log(`📡 [System] 正在將遠端附件轉化為本地原生附件... (${attachment.url})`);
+                    const tempDir = path_sync.join(process.cwd(), 'data', 'temp_uploads');
+                    
+                    // 根據 mimeType 推斷副檔名
+                    let ext = 'bin';
+                    if (attachment.mimeType) {
+                        const parts = attachment.mimeType.split('/');
+                        ext = parts[1] || 'bin';
+                        if (ext === 'plain') ext = 'txt';
+                        if (ext === 'jpeg') ext = 'jpg';
+                        if (ext === 'gif') ext = 'gif';
+                        if (ext === 'markdown' || ext === 'x-markdown') ext = 'md';
+                        if (ext.includes('wordprocessingml')) ext = 'docx';
+                        if (ext.includes('spreadsheetml')) ext = 'xlsx';
+                        if (ext.includes('presentationml')) ext = 'pptx';
+                    }
+                    
+                    const fileName = `remote_${Date.now()}_${uuidv4().substring(0, 8)}.${ext}`;
+                    const localPath = path_sync.join(tempDir, fileName);
+                    
+                    await downloadFile(attachment.url, localPath);
+                    attachment.url = `/api/files/${fileName}`;
+                    attachment.path = localPath;
+                    attachment.isNative = true;
+                    console.log(`✅ [System] 附件下載完成，URL: ${attachment.url}`);
+                } catch (err) {
+                    console.warn(`⚠️ [System] 附件轉化失敗: ${err.message}，將退回 OpticNerve 模式。`);
+                }
+            }
+
+            // 如果是原生附加檔案 (由 Web Dashboard 傳入或剛剛下載完成)，則跳過 OpticNerve 分析，直接入隊
+            if (attachment.isNative) {
+                console.log("📎 [System] 偵測到原生附件，將直接交由 Golem 處理。");
                 finalInput = senderPrefix + (ctx.text || "");
+            } else {
+                await ctx.reply("👁️ 正在透過 OpticNerve 分析檔案...");
+                const apiKey = await brain.doctor.keyChain.getKey();
+                if (apiKey) {
+                    const analysis = await OpticNerve.analyze(attachment.url, attachment.mimeType, apiKey);
+                    finalInput = `${senderPrefix}【系統通知：視覺訊號】\n檔案類型：${attachment.mimeType}\n分析報告：\n${analysis}\n使用者訊息：${ctx.text || ""}\n請根據分析報告回應。`;
+                } else {
+                    await ctx.reply("⚠️ 視覺系統暫時過熱 (API Rate Limit)，無法分析圖片，將僅處理文字訊息。");
+                    finalInput = senderPrefix + (ctx.text || "");
+                }
             }
         } else {
             finalInput = senderPrefix + (ctx.text || "");
         }
 
         if (!finalInput && !attachment) return;
-        await convoManager.enqueue(ctx, finalInput);
-    } catch (e) { console.error(e); await ctx.reply(`❌ 錯誤: ${e.message}`); }
+        await convoManager.enqueue(ctx, finalInput, { attachment: attachment });
+    } catch (e) {
+        console.error(e);
+        await ctx.reply(`❌ 錯誤: ${e.message}`);
+    }
 }
 
 async function handleUnifiedCallback(ctx, actionData) {

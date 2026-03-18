@@ -49,13 +49,15 @@ class WebServer {
             origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
             methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
         }));
-        this.app.use(express.json()); // Enable JSON body parsing
+        this.app.use(express.json({ limit: '50mb' })); // Enable JSON body parsing with large limit
+        this.app.use(express.urlencoded({ limit: '50mb', extended: true }));
         this.server = http.createServer(this.app);
 
         // Security & Cleanup Middleware
         this.app.use((req, res, next) => {
             // Set a sensible CSP to avoid Chrome defaults blocking things during redirects
-            res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws: wss:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
+            // 🎯 [v9.1.10] Relax CSP for images to support diverse sources and prevent broken icons
+            res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws: wss:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: *;");
             next();
         });
 
@@ -160,6 +162,22 @@ class WebServer {
     }
 
     init() {
+        // Serve uploaded files
+        // 🚀 [v8.6] Static File Serving for Dashboard Uploads (Ensure absolute path)
+        const projectRoot = path.resolve(__dirname, '..');
+        const uploadDir = path.join(projectRoot, 'data', 'temp_uploads');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        this.app.use('/api/files', express.static(uploadDir));
+
+        // 🎯 [v9.1.10] Debug Endpoint to verify file visibility
+        this.app.get('/api/files-debug', (req, res) => {
+            if (fs.existsSync(uploadDir)) {
+                const files = fs.readdirSync(uploadDir);
+                return res.json({ uploadDir, files });
+            }
+            return res.status(404).json({ error: 'Upload directory not found', path: uploadDir });
+        });
+
         // Serve static files with .html extension support - ONLY IN NON-DEV MODE
         const isDevMode = process.env.DASHBOARD_DEV_MODE === 'true';
         const publicPath = path.join(__dirname, 'out');
@@ -262,17 +280,65 @@ class WebServer {
 
         // --- API Routes ---
 
+        // Upload API (Direct Web Upload)
+        this.app.post('/api/upload', async (req, res) => {
+            try {
+                const { fileName, base64Data } = req.body;
+                if (!fileName || !base64Data) {
+                    return res.status(400).json({ error: 'Missing fileName or base64Data' });
+                }
+
+                // Create temp upload dir
+                const uploadDir = path.join(process.cwd(), 'data', 'temp_uploads');
+                if (!fs.existsSync(uploadDir)) {
+                    fs.mkdirSync(uploadDir, { recursive: true });
+                }
+
+                // Sanitize filename
+                const safeName = `${Date.now()}_${fileName.replace(/[^a-z0-9.]/gi, '_')}`;
+                const filePath = path.join(uploadDir, safeName);
+
+                // Save file
+                const buffer = Buffer.from(base64Data, 'base64');
+                fs.writeFileSync(filePath, buffer);
+
+                console.log(`💾 [WebServer] File uploaded: ${safeName}`);
+                return res.json({ success: true, path: filePath, url: `/api/files/${safeName}` });
+            } catch (e) {
+                console.error('Failed to upload file:', e);
+                return res.status(500).json({ error: e.message });
+            }
+        });
+
         // Chat API (Direct Web Chat)
         this.app.post('/api/chat', async (req, res) => {
             try {
-                const { golemId, message } = req.body;
-                if (!golemId || !message) {
-                    return res.status(400).json({ error: 'Missing golemId or message' });
+                const { golemId, message, attachment: attachmentData } = req.body;
+                if (!golemId || (!message && !attachmentData)) {
+                    return res.status(400).json({ error: 'Missing golemId, message or attachment' });
                 }
 
                 if (typeof global.handleDashboardMessage !== 'function') {
                     return res.status(503).json({ error: 'Dashboard message handler not ready' });
                 }
+
+                // 🚀 [v9.1.10] 更好的 MIME Type 推斷邏輯，避免非圖片檔案被誤判為 image/jpeg
+                let finalMimeType = attachmentData ? attachmentData.mimeType : null;
+                if (attachmentData && !finalMimeType && attachmentData.url) {
+                    const ext = attachmentData.url.split('.').pop().toLowerCase();
+                    const mimeMap = {
+                        'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp',
+                        'pdf': 'application/pdf', 'txt': 'text/plain', 'md': 'text/markdown', 'sh': 'text/x-sh', 'js': 'text/javascript'
+                    };
+                    finalMimeType = mimeMap[ext] || 'application/octet-stream';
+                }
+
+                const attachment = attachmentData ? {
+                    isNative: true,
+                    path: attachmentData.path,
+                    url: attachmentData.url,
+                    mimeType: finalMimeType || 'application/octet-stream'
+                } : null;
 
                 // 建立了 UniversalContext 替代品
                 const mockContext = {
@@ -302,17 +368,18 @@ class WebServer {
                         });
                     },
                     sendTyping: async () => { },
-                    getAttachment: async () => null,
+                    getAttachment: async () => attachment,
                     instance: { username: golemId }
                 };
 
                 // 回顯使用者的訊息到 Dashboard Log
                 this.broadcastLog({
                     time: new Date().toLocaleTimeString(),
-                    msg: `[User] ${message}`,
+                    msg: `[User] ${message || (attachment ? '[圖片]' : '')}`,
                     type: 'agent',
-                    raw: `[User] ${message}`,
-                    golemId
+                    raw: `[User] ${message || '[圖片]'}`,
+                    golemId,
+                    attachment: attachment ? { url: attachment.url, mimeType: attachment.mimeType } : null
                 });
 
                 // ── [v9.1.10] 立即發送「思考中」信號 ──

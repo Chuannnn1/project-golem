@@ -13,7 +13,8 @@ class DOMDoctor {
         this.defaults = {
             input: 'textarea, div[contenteditable="true"], rich-textarea > div, p[data-placeholder], .ql-editor',
             send: 'button[aria-label*="Send"], button[aria-label*="傳送"], button[aria-label*="Submit"], span[data-icon="send"], button.bg-primary',
-            response: '.model-response-text, .message-content, .markdown, div[data-test-id="message-content"], .prose'
+            response: '.model-response-text, .message-content, .markdown, div[data-test-id="message-content"], .prose',
+            upload: 'input[type="file"], button[aria-label*="Add image"], button[aria-label*="上傳"], button[aria-label*="圖片"]'
         };
     }
     loadSelectors() {
