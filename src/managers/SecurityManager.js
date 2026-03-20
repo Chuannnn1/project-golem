@@ -11,6 +11,11 @@ class SecurityManager {
         const safeCmd = (cmd || "").trim();
         if (this.BLOCK_PATTERNS.some(regex => regex.test(safeCmd))) return { level: 'BLOCKED', reason: '毀滅性指令' };
 
+        // --- 全自動執行的開關 (最高層級) ---
+        if (process.env.GOLEM_AUTO_APPROVE_ALL === 'true') {
+            return { level: 'SAFE' };
+        }
+
         // 依然阻擋重導向 (> <) 與子殼層 ($() ``) 因為過於複雜且具破壞性
         if (/([><`])|\$\(/.test(safeCmd)) {
             return { level: 'WARNING', reason: '包含重導向或子系統呼叫等複雜操作，需確認' };
@@ -48,9 +53,13 @@ class SecurityManager {
         }
 
         const baseCmd = safeCmd.split(/\s+/)[0];
+        const trustSystem = process.env.GOLEM_TRUST_SYSTEM_COMMANDS === 'true';
 
-        // 原本的 SAFE_COMMANDS 不再預設放行，只看 userWhitelist
+        // 1. Check user-defined whitelist
         if (userWhitelist.includes(baseCmd)) return { level: 'SAFE' };
+
+        // 2. Check system safety library (only if enabled)
+        if (trustSystem && this.SAFE_COMMANDS.includes(baseCmd)) return { level: 'SAFE' };
 
         // 這些危險指令會直接進 DANGER
         if (dangerousOps.includes(baseCmd)) return { level: 'DANGER', reason: '高風險操作' };

@@ -65,17 +65,17 @@ const SystemHealthDashboard = ({ systemStatus }: { systemStatus: SystemStatus | 
             {/* 0. System Integrity Banner */}
             <div className={cn(
                 "rounded-xl p-5 shadow-sm border transition-all duration-500 flex items-center justify-between",
-                isReady ? "bg-emerald-500/5 border-emerald-500/20" : 
-                needsAction ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/5 border-border"
+                isReady ? "bg-emerald-500/5 border-emerald-500/20" :
+                    needsAction ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/5 border-border"
             )}>
                 <div className="flex items-center gap-4">
                     <div className={cn(
                         "p-3 rounded-full shadow-inner",
-                        isReady ? "bg-emerald-500/10 text-emerald-500" : 
-                        needsAction ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground"
+                        isReady ? "bg-emerald-500/10 text-emerald-500" :
+                            needsAction ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground"
                     )}>
-                        {isReady ? <ShieldCheck className="w-6 h-6" /> : 
-                         needsAction ? <AlertCircle className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
+                        {isReady ? <ShieldCheck className="w-6 h-6" /> :
+                            needsAction ? <AlertCircle className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">
@@ -83,8 +83,8 @@ const SystemHealthDashboard = ({ systemStatus }: { systemStatus: SystemStatus | 
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
                             {isReady ? "所有核心模組與配置運作正常，系統處於最佳狀態。" :
-                             needsAction ? `檢測到 ${healthChecks.length - healthyCount} 項異常，請檢查下方健康檢查細項。` :
-                             "正在初始化系統狀態..."}
+                                needsAction ? `檢測到 ${healthChecks.length - healthyCount} 項異常，請檢查下方健康檢查細項。` :
+                                    "正在初始化系統狀態..."}
                         </p>
                     </div>
                 </div>
@@ -100,8 +100,8 @@ const SystemHealthDashboard = ({ systemStatus }: { systemStatus: SystemStatus | 
                     </div>
                     <span className={cn(
                         "px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm border",
-                        isReady ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
-                        needsAction ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-muted text-muted-foreground border-border"
+                        isReady ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                            needsAction ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-muted text-muted-foreground border-border"
                     )}>
                         {isReady ? "Operational" : needsAction ? "Action Required" : "Unknown"}
                     </span>
@@ -1009,9 +1009,9 @@ export default function SettingsPage() {
 
                 {/* URL Management Tab */}
                 {activeTab === 'urls' && (
-                    <UrlsTab 
-                        geminiUrls={config.env.GEMINI_URLS || ""} 
-                        onChange={(val) => handleChangeEnv("GEMINI_URLS", val)} 
+                    <UrlsTab
+                        geminiUrls={config.env.GEMINI_URLS || ""}
+                        onChange={(val) => handleChangeEnv("GEMINI_URLS", val)}
                     />
                 )}
 
@@ -1047,14 +1047,37 @@ export default function SettingsPage() {
                             <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                                 🛡️ 指令安全設定
                             </h2>
+                            <SettingField
+                                label="嚴格指令防護 (Strict Safeguard)"
+                                keyName="GOLEM_STRICT_SAFEGUARD"
+                                placeholder="false"
+                                desc="是否在 initial validation 階段就攔截 dangerousOps (如 rm -rf)。"
+                                value={config.env.GOLEM_STRICT_SAFEGUARD || ""}
+                                onChange={(val) => handleChangeEnv("GOLEM_STRICT_SAFEGUARD", val)}
+                            />
+                            <SettingField
+                                label="信任系統安全庫指令 (Trust System Library)"
+                                keyName="GOLEM_TRUST_SYSTEM_COMMANDS"
+                                placeholder="false"
+                                desc="是否自動放行系統預設的安全指令 (如 ls, cat, grep, pwd) 而不需每次手動核准。"
+                                value={config.env.GOLEM_TRUST_SYSTEM_COMMANDS || ""}
+                                onChange={(val) => handleChangeEnv("GOLEM_TRUST_SYSTEM_COMMANDS", val)}
+                            />
+
+                            <div className="mt-6 p-4 border border-red-500/30 bg-red-500/5 rounded-lg">
+                                <div className="flex items-center gap-2 text-red-400 font-bold mb-2">
+                                    <span className="text-xl">⚠️</span>
+                                    <span>危險區域 (Dangerous Zone)</span>
+                                </div>
                                 <SettingField
-                                    label="嚴格指令防護 (Strict Safeguard)"
-                                    keyName="GOLEM_STRICT_SAFEGUARD"
+                                    label="全自動指令執行 (Full Auto-Approve)"
+                                    keyName="GOLEM_AUTO_APPROVE_ALL"
                                     placeholder="false"
-                                    desc="是否在 initial validation 階段就攔截 dangerousOps (如 rm -rf)。"
-                                    value={config.env.GOLEM_STRICT_SAFEGUARD || ""}
-                                    onChange={(val) => handleChangeEnv("GOLEM_STRICT_SAFEGUARD", val)}
+                                    desc="允許所有指令直接執行而不需經過任何通知或核准。核心阻斷清單除外。開啟此項代表您完全信任 AI 的行為。"
+                                    value={config.env.GOLEM_AUTO_APPROVE_ALL || ""}
+                                    onChange={(val) => handleChangeEnv("GOLEM_AUTO_APPROVE_ALL", val)}
                                 />
+                            </div>
                         </div>
 
                         {/* Whitelist Settings */}
@@ -1139,7 +1162,7 @@ export default function SettingsPage() {
                                                     onClick={() => {
                                                         const current = (config.env.COMMAND_WHITELIST || "").split(',').map(s => s.trim()).filter(c => c !== cmd && c !== "");
                                                         handleChangeEnv("COMMAND_WHITELIST", current.join(','));
-                                                        const defaultSafe = ['dir', 'pwd', 'date', 'echo', 'cat', 'grep', 'find', 'whoami', 'tail', 'head', 'df', 'free', 'Get-ChildItem', 'Select-String', 'golem-check'];
+                                                        const defaultSafe = ['ls', 'dir', 'pwd', 'date', 'echo', 'cat', 'grep', 'find', 'whoami', 'tail', 'head', 'df', 'free', 'Get-ChildItem', 'Select-String', 'golem-check'];
                                                         if (!defaultSafe.includes(cmd)) {
                                                             const pool = (config.env.CUSTOM_COMMANDS || "").split(',').map(s => s.trim()).filter(Boolean);
                                                             if (!pool.includes(cmd)) handleChangeEnv("CUSTOM_COMMANDS", [...pool, cmd].join(','));
