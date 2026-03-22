@@ -53,6 +53,9 @@ class GolemBrain {
 
         // ── Backend Selection ──
         this.backend = ConfigManager.CONFIG.GOLEM_BACKEND || 'gemini';
+        
+        // ── 實體生命週期追蹤 ──
+        this.browserStartTime = null;
     }
 
     // ─── Public API (向後相容) ─────────────────────────────
@@ -78,6 +81,7 @@ class GolemBrain {
                 userDataDir: this.userDataDir,
                 headless: process.env.PLAYWRIGHT_HEADLESS,
             });
+            this.browserStartTime = Date.now();
         }
 
         // 2. 取得或建立頁面
@@ -581,12 +585,13 @@ class GolemBrain {
     /**
      * 🛡️ 瀏覽器健康檢查與自癒機制
      */
-    async _ensureBrowserHealth() {
-        let isHealthy = true;
-        try {
-            if (!this.context) return; // 尚未啟動不視為故障，由 sendMessage 的 init() 處理
+    async _ensureBrowserHealth(forceRestart = false) {
+        let isHealthy = !forceRestart;
+        if (!forceRestart) {
+            try {
+                if (!this.context) return; // 尚未啟動不視為故障，由 sendMessage 的 init() 處理
 
-            // 1. 檢查連線狀態
+                // 1. 檢查連線狀態
             // Playwright 中，如果 context.browser 存在，則檢查連線
             const browser = this.context.browser();
             if (browser && !browser.isConnected()) {
@@ -607,9 +612,10 @@ class GolemBrain {
         } catch (e) {
             isHealthy = false;
         }
+        } // Close if (!forceRestart)
 
         if (!isHealthy) {
-            console.warn("🩹 [Brain] 偵測到失效狀態，正在執行物理清理並重新初始化...");
+            console.warn(`🩹 [Brain] 偵測到失效狀態或強制重啟 (forceRestart=${forceRestart})，正在執行物理清理並重新初始化...`);
             // 清理舊實體 (確保清理乾淨，防止殘留 Lock)
             try {
                 if (this.context) {

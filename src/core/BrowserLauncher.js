@@ -85,6 +85,28 @@ class BrowserLauncher {
                 args: [...BROWSER_ARGS],
                 ignoreDefaultArgs: ['--disable-extensions'], // 保留某些必要的擴充功能行為
             });
+
+            // 🛡️ [Network Interception] 資源攔截優化 (大幅節省 RAM)
+            try {
+                await context.route('**/*', (route) => {
+                    const req = route.request();
+                    const type = req.resourceType();
+                    // 阻擋重量級視覺與字型資源
+                    if (['image', 'media', 'font'].includes(type) && !req.url().includes('recaptcha')) {
+                        return route.abort();
+                    }
+                    // 阻擋常見的第三方廣告/追蹤腳本
+                    const url = req.url().toLowerCase();
+                    if (url.includes('google-analytics') || url.includes('doubleclick') || url.includes('googletagmanager')) {
+                        return route.abort();
+                    }
+                    return route.continue();
+                });
+                console.log(`🛡️ [System] 網路資源攔截已啟用 (封鎖 Image, Media, Font, trackers)`);
+            } catch (routeErr) {
+                console.warn(`⚠️ [System] 網路攔截設定失敗: ${routeErr.message}`);
+            }
+
             return context;
         } catch (err) {
             if (retries > 0 && err.message.includes('profile appears to be in use')) {

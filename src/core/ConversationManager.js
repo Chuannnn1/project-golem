@@ -18,6 +18,27 @@ class ConversationManager {
         this.interventionLevel = options.interventionLevel || 'CONSERVATIVE';
         this.DEBOUNCE_MS = 1500;
         this.autoTurnCount = 0; // 🎯 [v9.1.15] Track autonomous turns
+
+        // 🔄 [Instance Pooling] 背景監控與定時重啟定時器
+        this.UPTIME_LIMIT_MS = 24 * 60 * 60 * 1000; // 24H
+        setInterval(() => this._checkInstanceHealth(), 60 * 60 * 1000); // Check every hour
+    }
+
+    async _checkInstanceHealth() {
+        if (this.isProcessing || this.queue.length > 0) return; // 不要干擾進行中的對話
+        if (this.brain && this.brain.browserStartTime && (Date.now() - this.brain.browserStartTime > this.UPTIME_LIMIT_MS)) {
+            console.log(`🔄 [Instance Pooling] 大腦實體已達生命週期 (24小時)，目前系統閒置。開始背景重啟實體池...`);
+            this.isProcessing = true; // 鎖住隊列，防止新請求干擾
+            try {
+                await this.brain._ensureBrowserHealth(true);
+                console.log(`✅ [Instance Pooling] 閒置背景重啟完成！`);
+            } catch (e) {
+                console.warn(`⚠️ [Instance Pooling] 閒置背景重啟失敗:`, e.message);
+            } finally {
+                this.isProcessing = false;
+                this._processQueue(); // 重新觸發可能在鎖定期間累積的隊列
+            }
+        }
     }
 
     async enqueue(ctx, text, options = { isPriority: false, bypassDebounce: false, attachment: null }) {
@@ -26,7 +47,7 @@ class ConversationManager {
         // 🚨 Highest Privilege: priority tasks bypass user buffers completely and inject straight into queue
         if (options.bypassDebounce) {
             console.log(`⚡ [Dialogue Queue] 高優先級請求繞過防抖機制 (${chatId}): "${text.substring(0, 15)}..."`);
-            
+
             // 🎯 [v9.1.15] Reset or increment auto turn count
             if (options.isSystemFeedback) {
                 this.autoTurnCount++;
@@ -207,9 +228,9 @@ class ConversationManager {
 
             const { text: raw, attachments: responseAttachments } = brainResponse;
 
-            await this.NeuroShunter.dispatch(task.ctx, raw, this.brain, this.controller, { 
+            await this.NeuroShunter.dispatch(task.ctx, raw, this.brain, this.controller, {
                 suppressReply: shouldSuppressReply || task.options.suppressReply === true,
-                attachments: responseAttachments 
+                attachments: responseAttachments
             });
         } catch (e) {
             console.error(`❌ [Dialogue Queue:${this.golemId}] 處理失敗:`, e);
