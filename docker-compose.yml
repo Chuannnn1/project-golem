@@ -30,6 +30,8 @@ services:
       # Use host values if provided, otherwise leave empty
       - PLAYWRIGHT_REMOTE_DEBUGGING_PORT=${PLAYWRIGHT_REMOTE_DEBUGGING_PORT:-}
       - HOST_PROJECT_DIR=${PWD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # TTY and Stdin are useful for interactive sessions or maintaining terminal-based processes
     stdin_open: true
     tty: true

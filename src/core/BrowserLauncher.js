@@ -146,7 +146,10 @@ class BrowserLauncher {
                     res.on('end', () => {
                         try {
                             const json = JSON.parse(data);
-                            resolve(json.webSocketDebuggerUrl);
+                            const wsUrl = new URL(json.webSocketDebuggerUrl);
+                            wsUrl.host = host;
+                            wsUrl.port = port;
+                            resolve(wsUrl.toString());
                         } catch (e) {
                             reject(new Error(`Failed to parse /json/version: ${data}`));
                         }
@@ -162,7 +165,7 @@ class BrowserLauncher {
 
         const browser = await chromium.connectOverCDP(wsEndpoint);
         console.log(`✅ [System] Connected to Remote Chrome!`);
-        return browser;
+        return browser.contexts()[0];
     }
 
     /**
