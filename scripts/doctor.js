@@ -66,6 +66,26 @@ const testPort = (port) => {
     });
 };
 
+
+// 5b. Check Playwright Chromium binary
+try {
+    const { execSync } = require('child_process');
+    // npx playwright install chromium --dry-run exits 0 only if already installed
+    const result = execSync('npx playwright install chromium --dry-run 2>&1', { stdio: 'pipe' }).toString();
+    // If the output says it would download, the browser is NOT installed
+    const needsDownload = result.includes('Download url');
+    check(
+        'Playwright Chromium',
+        !needsDownload,
+        'Installed',
+        'Not installed - Playwright browser binary is missing.',
+        'Run `npx playwright install chromium` (and on Linux: `sudo npx playwright install-deps chromium`)',
+        false
+    );
+} catch (e) {
+    check('Playwright Chromium', false, '', 'Could not verify Playwright installation.', 'Run `npx playwright install chromium`', true);
+}
+
 testPort(3000).then((isFree) => {
     check('Port 3000 (Dashboard)', isFree, 'Available', 'In Use', 'Port 3000 is occupied. Stop processes using this port (e.g. `lsof -i :3000` then `kill <PID>`), or change DASHBOARD_PORT in .env.', true);
 

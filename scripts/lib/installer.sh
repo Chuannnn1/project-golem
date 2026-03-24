@@ -241,6 +241,40 @@ step_install_core() {
         log "Playwright browser install failed or was already present"
     fi
 
+    # ─── Playwright 系統依賴安裝 (Linux only) ───
+    # On Ubuntu/Debian, Playwright needs OS-level libraries (libnss3, libgbm, etc.)
+    # to launch Chromium. Without install-deps, the browser binary is present but
+    # will fail to execute with "error while loading shared libraries" or similar.
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        ui_info "正在安裝 Playwright 系統依賴 (Linux)..."
+        if sudo -n true 2>/dev/null; then
+            if ! run_quiet_step "安裝 Playwright 系統依賴" sudo npx playwright install-deps chromium; then
+                ui_warn "Playwright 系統依賴安裝失敗。若 Playwright 啟動失敗，請手動執行: sudo npx playwright install-deps chromium"
+                log "Playwright install-deps failed"
+            fi
+        else
+            ui_warn "無法自動安裝 Playwright 系統依賴 (需要 sudo)。若 Playwright 啟動失敗，請手動執行: sudo npx playwright install-deps chromium"
+            log "Playwright install-deps skipped (no sudo available)"
+        fi
+    fi
+
+    # ─── Playwright 系統依賴安裝 (Linux only) ───
+    # On Ubuntu/Debian, Playwright needs OS-level libraries (libnss3, libgbm, etc.)
+    # to launch Chromium. Without install-deps, the browser binary is present but
+    # will fail to execute with "error while loading shared libraries" or similar.
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        ui_info "正在安裝 Playwright 系統依賴 (Linux)..."
+        if sudo -n true 2>/dev/null; then
+            if ! run_quiet_step "安裝 Playwright 系統依賴" sudo npx playwright install-deps chromium; then
+                ui_warn "Playwright 系統依賴安裝失敗。若 Playwright 啟動失敗，請手動執行: sudo npx playwright install-deps chromium"
+                log "Playwright install-deps failed"
+            fi
+        else
+            ui_warn "無法自動安裝 Playwright 系統依賴 (需要 sudo)。若 Playwright 啟動失敗，請手動執行: sudo npx playwright install-deps chromium"
+            log "Playwright install-deps skipped (no sudo available)"
+        fi
+    fi
+
     # 確保 TUI 套件存在
     if [ ! -d "$SCRIPT_DIR/node_modules/blessed" ]; then
         ui_info "補安裝 blessed 介面庫..."
