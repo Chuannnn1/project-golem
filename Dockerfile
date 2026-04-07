@@ -44,8 +44,7 @@ COPY web-dashboard/package*.json ./web-dashboard/
 COPY . .
 
 # scripts
-COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-COPY scripts/setup-tailscale.sh /app/scripts/setup-tailscale.sh
+RUN cp /app/scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh /app/scripts/setup-tailscale.sh
 
 RUN mkdir -p /app/golem_memory /app/logs /app/openclaw_ref
