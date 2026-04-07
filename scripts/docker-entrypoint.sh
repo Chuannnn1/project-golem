@@ -81,26 +81,40 @@ start_desktop_stack() {
 }
 
 # ============================================================
+# Tailscale Setup
+# 透過 Tailscale 把 Golem dashboard (port 3000) 暴露到內網
+# ============================================================
+start_tailscale() {
+    if [ -z "${TAILSCALE_AUTH_KEY:-}" ]; then
+        log "TAILSCALE_AUTH_KEY not set, skipping Tailscale."
+        return 0
+    fi
+
+    log "Setting up Tailscale..."
+    sh /app/scripts/setup-tailscale.sh
+    log "Tailscale setup done."
+}
+
+# ============================================================
 # OpenClaw Backup Pull
-# 從 private repo 拉下 OpenClaw 的 agent 備份到 /app/openclaw_ref
-# Golem 啟動後可以自行讀取並 fine-tune 進自己的記憶格式
+# 從 private repo 拉下備份到 /app/openclaw_ref
 # ============================================================
 pull_openclaw_backup() {
     local repo_url="https://${GITHUB_TOKEN}@github.com/Chuannnn1/latest_claw_backup.git"
     local target_dir="/app/openclaw_ref"
 
     if [ -z "${GITHUB_TOKEN:-}" ]; then
-        log "WARNING: GITHUB_TOKEN not set, skipping OpenClaw backup pull."
+        log "GITHUB_TOKEN not set, skipping OpenClaw backup pull."
         return 0
     fi
 
     if [ -d "$target_dir/.git" ]; then
-        log "OpenClaw backup already exists, pulling latest..."
+        log "OpenClaw backup exists, pulling latest..."
         git -C "$target_dir" pull --ff-only 2>&1 | while read -r line; do
             log "  [git] $line"
         done
     else
-        log "Cloning OpenClaw backup from private repo..."
+        log "Cloning OpenClaw backup..."
         mkdir -p "$target_dir"
         git clone --depth=1 "$repo_url" "$target_dir" 2>&1 | while read -r line; do
             log "  [git] $line"
@@ -118,6 +132,7 @@ if is_true "${GOLEM_DESKTOP_MODE:-false}"; then
     start_desktop_stack
 fi
 
+start_tailscale
 pull_openclaw_backup
 
 exec "$@"
